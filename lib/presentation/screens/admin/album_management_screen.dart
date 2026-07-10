@@ -18,36 +18,31 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
   final List<AlbumModel> _albums = [
     AlbumModel(
       albumId: 1,
-      artistId: 1,
       title: 'Electric Dreams',
-      releaseDate: 2025,
+      releaseDate: DateTime(2025),
       coverPng: 'https://picsum.photos/seed/album1/400/400',
     ),
     AlbumModel(
       albumId: 2,
-      artistId: 2,
       title: 'City Lights',
-      releaseDate: 2025,
+      releaseDate: DateTime(2025),
       coverPng: 'https://picsum.photos/seed/album2/400/400',
     ),
     AlbumModel(
       albumId: 3,
-      artistId: 3,
       title: 'Ocean Waves',
-      releaseDate: 2024,
+      releaseDate: DateTime(2024),
       coverPng: 'https://picsum.photos/seed/album3/400/400',
     ),
     AlbumModel(
       albumId: 4,
-      artistId: 1,
       title: 'Neon Skyline',
-      releaseDate: 2024,
+      releaseDate: DateTime(2024),
     ),
     AlbumModel(
       albumId: 5,
-      artistId: 4,
       title: 'Midnight Pulse',
-      releaseDate: 2023,
+      releaseDate: DateTime(2023),
       coverPng: 'https://picsum.photos/seed/album5/400/400',
     ),
   ];
@@ -77,9 +72,10 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
           setState(() {
             _albums.add(AlbumModel(
               albumId: _nextId(),
-              artistId: 1,
               title: titleCtrl.text.trim(),
-              releaseDate: int.tryParse(yearCtrl.text),
+              releaseDate: int.tryParse(yearCtrl.text) != null
+                  ? DateTime(int.parse(yearCtrl.text))
+                  : null,
               coverPng: imgUrl.isNotEmpty ? imgUrl : null,
             ));
           });
@@ -115,9 +111,10 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
             if (idx != -1) {
               _albums[idx] = AlbumModel(
                 albumId: album.albumId,
-                artistId: album.artistId,
                 title: titleCtrl.text.trim(),
-                releaseDate: int.tryParse(yearCtrl.text),
+                releaseDate: int.tryParse(yearCtrl.text) != null
+                    ? DateTime(int.parse(yearCtrl.text))
+                    : null,
                 coverPng: imgUrl.isNotEmpty ? imgUrl : album.coverPng,
               );
             }
@@ -304,7 +301,7 @@ class _AlbumCard extends StatelessWidget {
 
   Widget _buildInfoBar() {
     final yearText =
-        album.releaseDate != null ? album.releaseDate.toString() : '—';
+        album.releaseDate != null ? '${album.releaseDate!.year}' : '—';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),

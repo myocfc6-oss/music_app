@@ -14,19 +14,14 @@ import 'presentation/screens/admin/album_management_screen.dart';
 import 'presentation/screens/admin/user_management_screen.dart';
 import 'presentation/screens/dashboard/album_detail_screen.dart';
 import 'presentation/screens/dashboard/artist_detail_screen.dart';
+import 'presentation/screens/profile/profile_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: const String.fromEnvironment(
-      'SUPABASE_URL',
-      defaultValue: 'YOUR_SUPABASE_URL',
-    ),
-    publishableKey: const String.fromEnvironment(
-      'SUPABASE_ANON_KEY',
-      defaultValue: 'YOUR_SUPABASE_ANON_KEY',
-    ),
+    url: 'https://rlxmvbvlhthxkoxqnxvp.supabase.co',
+    publishableKey: 'sb_publishable_0n1OixvALU0pHkqFpPVDfA_ljQ7JrWl',
   );
 
   runApp(const SonusApp());
@@ -43,7 +38,7 @@ class SonusApp extends StatelessWidget {
       theme: AppTheme.darkTheme,
       initialRoute: '/',
       routes: {
-        '/': (context) => const AdminDashboardScreen(),
+        '/': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
@@ -55,6 +50,7 @@ class SonusApp extends StatelessWidget {
         '/admin/artists': (context) => const ArtistManagementScreen(),
         '/admin/albums': (context) => const AlbumManagementScreen(),
         '/admin/users': (context) => const UserManagementScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

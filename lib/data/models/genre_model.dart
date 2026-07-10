@@ -1,22 +1,24 @@
 class GenreModel {
-  final int genreId;
+  final int genresId;
   final String name;
 
   GenreModel({
-    required this.genreId,
+    required this.genresId,
     required this.name,
   });
 
-  factory GenreModel.fromJson(Map<String, dynamic> json) {
+  factory GenreModel.fromMap(Map<String, dynamic> map) {
     return GenreModel(
-      genreId: json['genre_id'] as int,
-      name: json['name'] as String,
+      genresId: map['genres_id'] is int
+          ? map['genres_id']
+          : int.parse(map['genres_id'].toString()),
+      name: map['name']?.toString() ?? '',
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
-      'genre_id': genreId,
+      'genres_id': genresId,
       'name': name,
     };
   }

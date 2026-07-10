@@ -9,10 +9,10 @@ class PlayerScreen extends StatefulWidget {
 
   static final _dummyTrack = TrackModel(
     trackId: 0,
-    artistId: 0,
     albumId: 0,
-    genreId: 0,
+    genresId: 0,
     title: 'Sample Track',
+    audioUrl: '',
     duration: 215,
     streamCount: 0,
   );
@@ -103,7 +103,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          (widget.track ?? PlayerScreen._dummyTrack).artist?.name ?? 'Unknown Artist',
+                          'Album ${(widget.track ?? PlayerScreen._dummyTrack).albumId}',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],

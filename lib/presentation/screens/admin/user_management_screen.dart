@@ -12,12 +12,12 @@ class UserManagementScreen extends StatefulWidget {
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
   final List<UserModel> _users = [
-    UserModel(userId: 1, name: 'Alice Johnson', email: 'alice@example.com', role: 'admin'),
-    UserModel(userId: 2, name: 'Bob Smith', email: 'bob@example.com', role: 'user'),
-    UserModel(userId: 3, name: 'Carol Williams', email: 'carol@example.com', role: 'user'),
-    UserModel(userId: 4, name: 'David Brown', email: 'david@example.com', role: 'user'),
-    UserModel(userId: 5, name: 'Eve Martinez', email: 'eve@example.com', role: 'moderator'),
-    UserModel(userId: 6, name: 'Frank Lee', email: 'frank@example.com', role: 'user'),
+    UserModel(id: '1', name: 'Alice Johnson', email: 'alice@example.com', role: 'admin'),
+    UserModel(id: '2', name: 'Bob Smith', email: 'bob@example.com', role: 'user'),
+    UserModel(id: '3', name: 'Carol Williams', email: 'carol@example.com', role: 'user'),
+    UserModel(id: '4', name: 'David Brown', email: 'david@example.com', role: 'user'),
+    UserModel(id: '5', name: 'Eve Martinez', email: 'eve@example.com', role: 'moderator'),
+    UserModel(id: '6', name: 'Frank Lee', email: 'frank@example.com', role: 'user'),
   ];
 
   // ─── Edit Role ──────────────────────────────────────
@@ -44,7 +44,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: AppColors.surfaceElevated,
-                    backgroundImage: NetworkImage(_avatarUrl(user.userId)),
+                    backgroundImage: NetworkImage(_avatarUrl(user.id)),
                     onBackgroundImageError: (e, st) {},
                     child: Text(
                       user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
@@ -114,10 +114,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 if (selectedRole != user.role) {
                   setState(() {
                     final idx =
-                        _users.indexWhere((u) => u.userId == user.userId);
+                        _users.indexWhere((u) => u.id == user.id);
                     if (idx != -1) {
                       _users[idx] = UserModel(
-                        userId: user.userId,
+                        id: user.id,
                         name: user.name,
                         email: user.email,
                         role: selectedRole,
@@ -225,7 +225,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       ),
     ).then((confirmed) {
       if (confirmed == true) {
-        setState(() => _users.removeWhere((u) => u.userId == user.userId));
+        setState(() => _users.removeWhere((u) => u.id == user.id));
       }
     });
   }
@@ -260,7 +260,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       ),
     ).then((confirmed) {
       if (confirmed == true) {
-        setState(() => _users.removeWhere((u) => u.userId == user.userId));
+        setState(() => _users.removeWhere((u) => u.id == user.id));
       }
     });
   }
@@ -278,8 +278,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     'https://i.pravatar.cc/150?img=8',
   ];
 
-  String _avatarUrl(int userId) {
-    return _avatarUrls[userId % _avatarUrls.length];
+  String _avatarUrl(String userId) {
+    final index = int.tryParse(userId) ?? 0;
+    return _avatarUrls[index % _avatarUrls.length];
   }
 
   // ─── Build ──────────────────────────────────────────
@@ -303,7 +304,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 final user = _users[index];
                 return _UserTile(
                   user: user,
-                  avatarUrl: _avatarUrl(user.userId),
+                  avatarUrl: _avatarUrl(user.id),
                   onEditRole: () => _showEditRoleDialog(user),
                   onDelete: () => _deleteUser(user),
                   onBlock: () => _blockUser(user),

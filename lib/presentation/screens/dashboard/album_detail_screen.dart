@@ -11,18 +11,17 @@ class AlbumDetailScreen extends StatelessWidget {
 
   static final _dummyAlbum = AlbumModel(
     albumId: 1,
-    artistId: 1,
     title: 'Electric Dreams',
-    releaseDate: 2025,
+    releaseDate: DateTime(2025),
   );
 
   static final _dummyTracks = [
-    TrackModel(trackId: 1, artistId: 1, albumId: 1, genreId: 1, title: 'Midnight Pulse', duration: 234, streamCount: 1500000),
-    TrackModel(trackId: 2, artistId: 1, albumId: 1, genreId: 1, title: 'Neon Skyline', duration: 198, streamCount: 980000),
-    TrackModel(trackId: 3, artistId: 1, albumId: 1, genreId: 1, title: 'Distant Frequencies', duration: 312, streamCount: 620000),
-    TrackModel(trackId: 4, artistId: 1, albumId: 1, genreId: 1, title: 'Electric Pulse', duration: 256, streamCount: 410000),
-    TrackModel(trackId: 5, artistId: 1, albumId: 1, genreId: 1, title: 'Dreamcatcher', duration: 280, streamCount: 350000),
-    TrackModel(trackId: 6, artistId: 1, albumId: 1, genreId: 1, title: 'Starlight', duration: 205, streamCount: 290000),
+    TrackModel(trackId: 1, albumId: 1, genresId: 1, title: 'Midnight Pulse', audioUrl: '', duration: 234, streamCount: 1500000),
+    TrackModel(trackId: 2, albumId: 1, genresId: 1, title: 'Neon Skyline', audioUrl: '', duration: 198, streamCount: 980000),
+    TrackModel(trackId: 3, albumId: 1, genresId: 1, title: 'Distant Frequencies', audioUrl: '', duration: 312, streamCount: 620000),
+    TrackModel(trackId: 4, albumId: 1, genresId: 1, title: 'Electric Pulse', audioUrl: '', duration: 256, streamCount: 410000),
+    TrackModel(trackId: 5, albumId: 1, genresId: 1, title: 'Dreamcatcher', audioUrl: '', duration: 280, streamCount: 350000),
+    TrackModel(trackId: 6, albumId: 1, genresId: 1, title: 'Starlight', audioUrl: '', duration: 205, streamCount: 290000),
   ];
 
   @override
@@ -96,14 +95,14 @@ class AlbumDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Artist ${displayAlbum.artistId}',
+                    'Album ${displayAlbum.albumId}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textMuted,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${displayAlbum.releaseDate ?? "Unknown"} · ${_dummyTracks.length} tracks',
+                    '${displayAlbum.releaseDate?.year ?? "Unknown"} · ${_dummyTracks.length} tracks',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textMuted,
                     ),

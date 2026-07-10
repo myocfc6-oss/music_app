@@ -14,17 +14,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final List<PlaylistModel> _playlists = [
     PlaylistModel(
       playlistId: 1,
-      userId: 1,
+      userId: '1',
       title: 'Chill Vibes',
     ),
     PlaylistModel(
       playlistId: 2,
-      userId: 1,
+      userId: '1',
       title: 'Workout Mix',
     ),
     PlaylistModel(
       playlistId: 3,
-      userId: 1,
+      userId: '1',
       title: 'Late Night Drive',
     ),
   ];
@@ -60,7 +60,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   _playlists.add(
                     PlaylistModel(
                       playlistId: _playlists.length + 1,
-                      userId: 1,
+                      userId: '1',
                       title: nameController.text.trim(),
                     ),
                   );

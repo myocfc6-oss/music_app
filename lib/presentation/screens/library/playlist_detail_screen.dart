@@ -19,8 +19,7 @@ class PlaylistDetailScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: playlist.tracks == null || playlist.tracks!.isEmpty
-          ? Center(
+      body: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -47,48 +46,6 @@ class PlaylistDetailScreen extends StatelessWidget {
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: playlist.tracks!.length,
-              itemBuilder: (context, index) {
-                final track = playlist.tracks![index];
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.music_note_rounded,
-                      color: AppColors.primaryNeon,
-                    ),
-                  ),
-                  title: Text(
-                    track.title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  subtitle: Text(
-                    track.artist?.name ?? 'Unknown Artist',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: Text(
-                    track.durationFormatted,
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                );
-              },
             ),
     );
   }

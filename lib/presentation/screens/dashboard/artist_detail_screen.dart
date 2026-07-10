@@ -16,15 +16,15 @@ class ArtistDetailScreen extends StatelessWidget {
   );
 
   static final _dummyTracks = [
-    TrackModel(trackId: 1, artistId: 1, albumId: 1, genreId: 1, title: 'Midnight Pulse', duration: 234, streamCount: 1500000),
-    TrackModel(trackId: 2, artistId: 1, albumId: 1, genreId: 1, title: 'Distant Frequencies', duration: 312, streamCount: 620000),
-    TrackModel(trackId: 3, artistId: 1, albumId: 1, genreId: 1, title: 'Electric Pulse', duration: 256, streamCount: 410000),
-    TrackModel(trackId: 4, artistId: 1, albumId: 1, genreId: 1, title: 'Dreamcatcher', duration: 280, streamCount: 350000),
+    TrackModel(trackId: 1, albumId: 1, genresId: 1, title: 'Midnight Pulse', audioUrl: '', duration: 234, streamCount: 1500000),
+    TrackModel(trackId: 2, albumId: 1, genresId: 1, title: 'Distant Frequencies', audioUrl: '', duration: 312, streamCount: 620000),
+    TrackModel(trackId: 3, albumId: 1, genresId: 1, title: 'Electric Pulse', audioUrl: '', duration: 256, streamCount: 410000),
+    TrackModel(trackId: 4, albumId: 1, genresId: 1, title: 'Dreamcatcher', audioUrl: '', duration: 280, streamCount: 350000),
   ];
 
   static final _dummyAlbums = [
-    AlbumModel(albumId: 1, artistId: 1, title: 'Electric Dreams', releaseDate: 2025),
-    AlbumModel(albumId: 5, artistId: 1, title: 'Neon Horizons', releaseDate: 2024),
+    AlbumModel(albumId: 1, title: 'Electric Dreams', releaseDate: DateTime(2025)),
+    AlbumModel(albumId: 5, title: 'Neon Horizons', releaseDate: DateTime(2024)),
   ];
 
   @override

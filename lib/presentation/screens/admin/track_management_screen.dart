@@ -18,46 +18,46 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
   final List<TrackModel> _tracks = [
     TrackModel(
       trackId: 1,
-      artistId: 1,
       albumId: 1,
-      genreId: 1,
+      genresId: 1,
       title: 'Midnight Pulse',
+      audioUrl: '',
       duration: 234,
       streamCount: 1500000,
     ),
     TrackModel(
       trackId: 2,
-      artistId: 2,
       albumId: 2,
-      genreId: 2,
+      genresId: 2,
       title: 'Neon Skyline',
+      audioUrl: '',
       duration: 198,
       streamCount: 980000,
     ),
     TrackModel(
       trackId: 3,
-      artistId: 3,
       albumId: 3,
-      genreId: 3,
+      genresId: 3,
       title: 'Velvet Echoes',
+      audioUrl: '',
       duration: 267,
       streamCount: 750000,
     ),
     TrackModel(
       trackId: 4,
-      artistId: 1,
       albumId: 1,
-      genreId: 1,
+      genresId: 1,
       title: 'Digital Horizon',
+      audioUrl: '',
       duration: 312,
       streamCount: 420000,
     ),
     TrackModel(
       trackId: 5,
-      artistId: 4,
       albumId: 4,
-      genreId: 2,
+      genresId: 2,
       title: 'Crystal Waves',
+      audioUrl: '',
       duration: 186,
       streamCount: 650000,
     ),
@@ -91,10 +91,10 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
           setState(() {
             _tracks.add(TrackModel(
               trackId: _nextId(),
-              artistId: 1,
               albumId: 1,
-              genreId: 1,
+              genresId: 1,
               title: titleCtrl.text.trim(),
+              audioUrl: audioCtrl.text.trim(),
               duration: durSec,
               streamCount: 0,
             ));
@@ -131,10 +131,10 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
             if (idx != -1) {
               _tracks[idx] = TrackModel(
                 trackId: track.trackId,
-                artistId: track.artistId,
                 albumId: track.albumId,
-                genreId: track.genreId,
+                genresId: track.genresId,
                 title: titleCtrl.text.trim(),
+                audioUrl: track.audioUrl,
                 duration: durSec,
                 streamCount: track.streamCount,
               );
@@ -197,8 +197,7 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
   }
 
   String _artistLabel(TrackModel track) {
-    if (track.artist != null) return track.artist!.name;
-    return 'Artist ${track.artistId}';
+    return 'Track ${track.trackId}';
   }
 
   // ─── Build ──────────────────────────────────────────

@@ -1,42 +1,41 @@
-import 'artist_model.dart';
-
 class AlbumModel {
   final int albumId;
-  final int artistId;
   final String title;
-  final int? releaseDate;
+  final DateTime? releaseDate;
   final String? coverPng;
-  final ArtistModel? artist;
+  final DateTime? createdAt;
 
   AlbumModel({
     required this.albumId,
-    required this.artistId,
     required this.title,
     this.releaseDate,
     this.coverPng,
-    this.artist,
+    this.createdAt,
   });
 
-  factory AlbumModel.fromJson(Map<String, dynamic> json) {
+  factory AlbumModel.fromMap(Map<String, dynamic> map) {
     return AlbumModel(
-      albumId: json['album_id'] as int,
-      artistId: json['artist_id'] as int,
-      title: json['title'] as String,
-      releaseDate: json['release_date'] as int?,
-      coverPng: json['cover_png'] as String?,
-      artist: json['artist'] != null
-          ? ArtistModel.fromJson(json['artist'] as Map<String, dynamic>)
+      albumId: map['album_id'] is int
+          ? map['album_id']
+          : int.parse(map['album_id'].toString()),
+      title: map['title']?.toString() ?? '',
+      releaseDate: map['release_date'] != null
+          ? DateTime.tryParse(map['release_date'].toString())
+          : null,
+      coverPng: map['cover_png']?.toString(),
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'].toString())
           : null,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
       'album_id': albumId,
-      'artist_id': artistId,
       'title': title,
-      'release_date': releaseDate,
+      'release_date': releaseDate?.toIso8601String(),
       'cover_png': coverPng,
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }

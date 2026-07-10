@@ -16,22 +16,22 @@ class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
 
   final List<GenreModel> _genres = [
-    GenreModel(genreId: 1, name: 'Pop'),
-    GenreModel(genreId: 2, name: 'Rock'),
-    GenreModel(genreId: 3, name: 'Hip-Hop'),
-    GenreModel(genreId: 4, name: 'Electronic'),
-    GenreModel(genreId: 5, name: 'Jazz'),
-    GenreModel(genreId: 6, name: 'Classical'),
-    GenreModel(genreId: 7, name: 'R&B'),
-    GenreModel(genreId: 8, name: 'Country'),
+    GenreModel(genresId: 1, name: 'Pop'),
+    GenreModel(genresId: 2, name: 'Rock'),
+    GenreModel(genresId: 3, name: 'Hip-Hop'),
+    GenreModel(genresId: 4, name: 'Electronic'),
+    GenreModel(genresId: 5, name: 'Jazz'),
+    GenreModel(genresId: 6, name: 'Classical'),
+    GenreModel(genresId: 7, name: 'R&B'),
+    GenreModel(genresId: 8, name: 'Country'),
   ];
 
   final List<TrackModel> _allTracks = [
-    TrackModel(trackId: 1, artistId: 1, albumId: 1, genreId: 1, title: 'Midnight Pulse', duration: 234, streamCount: 1500000),
-    TrackModel(trackId: 2, artistId: 2, albumId: 2, genreId: 2, title: 'Neon Skyline', duration: 198, streamCount: 980000),
-    TrackModel(trackId: 3, artistId: 3, albumId: 3, genreId: 5, title: 'Velvet Echoes', duration: 267, streamCount: 750000),
-    TrackModel(trackId: 4, artistId: 1, albumId: 1, genreId: 1, title: 'Distant Frequencies', duration: 312, streamCount: 620000),
-    TrackModel(trackId: 5, artistId: 4, albumId: 4, genreId: 7, title: 'Golden Hour', duration: 185, streamCount: 540000),
+    TrackModel(trackId: 1, albumId: 1, genresId: 1, title: 'Midnight Pulse', audioUrl: '', duration: 234, streamCount: 1500000),
+    TrackModel(trackId: 2, albumId: 2, genresId: 2, title: 'Neon Skyline', audioUrl: '', duration: 198, streamCount: 980000),
+    TrackModel(trackId: 3, albumId: 3, genresId: 5, title: 'Velvet Echoes', audioUrl: '', duration: 267, streamCount: 750000),
+    TrackModel(trackId: 4, albumId: 1, genresId: 1, title: 'Distant Frequencies', audioUrl: '', duration: 312, streamCount: 620000),
+    TrackModel(trackId: 5, albumId: 4, genresId: 7, title: 'Golden Hour', audioUrl: '', duration: 185, streamCount: 540000),
   ];
 
   List<TrackModel> _searchResults = [];
@@ -173,7 +173,7 @@ class _SearchScreenState extends State<SearchScreen> {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        'Artist ${track.artistId}',
+        'Album ${track.albumId}',
         style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
       ),
       trailing: Text(

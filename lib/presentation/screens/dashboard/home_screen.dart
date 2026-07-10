@@ -6,6 +6,7 @@ import '../../global_widgets/mini_audio_player.dart';
 import '../search/search_screen.dart';
 import '../library/library_screen.dart';
 import '../now_playing/player_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,46 +21,46 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<TrackModel> _trendingTracks = [
     TrackModel(
       trackId: 1,
-      artistId: 1,
       albumId: 1,
-      genreId: 1,
+      genresId: 1,
       title: 'Midnight Pulse',
+      audioUrl: '',
       duration: 234,
       streamCount: 1500000,
     ),
     TrackModel(
       trackId: 2,
-      artistId: 2,
       albumId: 2,
-      genreId: 2,
+      genresId: 2,
       title: 'Neon Skyline',
+      audioUrl: '',
       duration: 198,
       streamCount: 980000,
     ),
     TrackModel(
       trackId: 3,
-      artistId: 3,
       albumId: 3,
-      genreId: 3,
+      genresId: 3,
       title: 'Velvet Echoes',
+      audioUrl: '',
       duration: 267,
       streamCount: 750000,
     ),
     TrackModel(
       trackId: 4,
-      artistId: 1,
       albumId: 1,
-      genreId: 1,
+      genresId: 1,
       title: 'Distant Frequencies',
+      audioUrl: '',
       duration: 312,
       streamCount: 620000,
     ),
     TrackModel(
       trackId: 5,
-      artistId: 4,
       albumId: 4,
-      genreId: 4,
+      genresId: 4,
       title: 'Golden Hour',
+      audioUrl: '',
       duration: 185,
       streamCount: 540000,
     ),
@@ -68,27 +69,23 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<AlbumModel> _recentAlbums = [
     AlbumModel(
       albumId: 1,
-      artistId: 1,
       title: 'Electric Dreams',
-      releaseDate: 2025,
+      releaseDate: DateTime(2025),
     ),
     AlbumModel(
       albumId: 2,
-      artistId: 2,
       title: 'City Lights',
-      releaseDate: 2025,
+      releaseDate: DateTime(2025),
     ),
     AlbumModel(
       albumId: 3,
-      artistId: 3,
       title: 'Ocean Waves',
-      releaseDate: 2024,
+      releaseDate: DateTime(2024),
     ),
     AlbumModel(
       albumId: 4,
-      artistId: 4,
       title: 'Sunset Boulevard',
-      releaseDate: 2024,
+      releaseDate: DateTime(2024),
     ),
   ];
 
@@ -119,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
               BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
               BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Search'),
               BottomNavigationBarItem(icon: Icon(Icons.library_music_rounded), label: 'Library'),
+              BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
             ],
           ),
         ),
@@ -134,6 +132,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return const SearchScreen();
       case 2:
         return const LibraryScreen();
+      case 3:
+        return const ProfileScreen();
       default:
         return _buildHomeContent();
     }
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        'Artist ${track.artistId}',
+        'Album ${track.albumId}',
         style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
       ),
       trailing: Row(
@@ -277,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            'Artist ${album.artistId}',
+            'Album ${album.albumId}',
             style: const TextStyle(
               color: AppColors.textMuted,
               fontSize: 12,

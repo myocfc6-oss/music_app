@@ -1,8 +1,8 @@
 class UserLikeModel {
   final int id;
-  final int userId;
+  final String userId;
   final int trackId;
-  final String? likeAt;
+  final DateTime? likeAt;
 
   UserLikeModel({
     required this.id,
@@ -11,21 +11,27 @@ class UserLikeModel {
     this.likeAt,
   });
 
-  factory UserLikeModel.fromJson(Map<String, dynamic> json) {
+  factory UserLikeModel.fromMap(Map<String, dynamic> map) {
     return UserLikeModel(
-      id: json['id'] as int,
-      userId: json['user_id'] as int,
-      trackId: json['track_id'] as int,
-      likeAt: json['like_at'] as String?,
+      id: map['id'] is int
+          ? map['id']
+          : int.parse(map['id'].toString()),
+      userId: map['user_id']?.toString() ?? '',
+      trackId: map['track_id'] is int
+          ? map['track_id']
+          : int.parse(map['track_id'].toString()),
+      likeAt: map['like_at'] != null
+          ? DateTime.tryParse(map['like_at'].toString())
+          : null,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
       'user_id': userId,
       'track_id': trackId,
-      'like_at': likeAt,
+      'like_at': likeAt?.toIso8601String(),
     };
   }
 }

@@ -1,62 +1,59 @@
-import 'artist_model.dart';
-import 'album_model.dart';
-import 'genre_model.dart';
-
 class TrackModel {
   final int trackId;
-  final int artistId;
   final int albumId;
-  final int genreId;
+  final int genresId;
   final String title;
+  final String audioUrl;
   final int duration;
   final int streamCount;
-  final ArtistModel? artist;
-  final AlbumModel? album;
-  final GenreModel? genre;
+  final DateTime? createdAt;
 
   TrackModel({
     required this.trackId,
-    required this.artistId,
     required this.albumId,
-    required this.genreId,
+    required this.genresId,
     required this.title,
+    required this.audioUrl,
     required this.duration,
     required this.streamCount,
-    this.artist,
-    this.album,
-    this.genre,
+    this.createdAt,
   });
 
-  factory TrackModel.fromJson(Map<String, dynamic> json) {
+  factory TrackModel.fromMap(Map<String, dynamic> map) {
     return TrackModel(
-      trackId: json['track_id'] as int,
-      artistId: json['artist_id'] as int,
-      albumId: json['album_id'] as int,
-      genreId: json['genre_id'] as int,
-      title: json['title'] as String,
-      duration: json['duration'] as int,
-      streamCount: json['stream_count'] as int,
-      artist: json['artist'] != null
-          ? ArtistModel.fromJson(json['artist'] as Map<String, dynamic>)
-          : null,
-      album: json['album'] != null
-          ? AlbumModel.fromJson(json['album'] as Map<String, dynamic>)
-          : null,
-      genre: json['genre'] != null
-          ? GenreModel.fromJson(json['genre'] as Map<String, dynamic>)
+      trackId: map['track_id'] is int
+          ? map['track_id']
+          : int.parse(map['track_id'].toString()),
+      albumId: map['album_id'] is int
+          ? map['album_id']
+          : int.parse(map['album_id'].toString()),
+      genresId: map['genres_id'] is int
+          ? map['genres_id']
+          : int.parse(map['genres_id'].toString()),
+      title: map['title']?.toString() ?? '',
+      audioUrl: map['audio_url']?.toString() ?? '',
+      duration: map['duration'] is int
+          ? map['duration']
+          : int.parse(map['duration'].toString()),
+      streamCount: map['stream_count'] is int
+          ? map['stream_count']
+          : int.parse(map['stream_count'].toString()),
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'].toString())
           : null,
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
       'track_id': trackId,
-      'artist_id': artistId,
       'album_id': albumId,
-      'genre_id': genreId,
+      'genres_id': genresId,
       'title': title,
+      'audio_url': audioUrl,
       'duration': duration,
       'stream_count': streamCount,
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 
