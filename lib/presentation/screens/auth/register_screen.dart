@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   bool _isLoading = false;
+  String? _errorText;
 
   @override
   void dispose() {
@@ -31,22 +32,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) return;
+    setState(() => _errorText = null);
+
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.isEmpty) {
+      setState(() => _errorText = 'Name is required');
+      return;
+    }
+    if (email.isEmpty) {
+      setState(() => _errorText = 'Email is required');
+      return;
+    }
+    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      setState(() => _errorText = 'Enter a valid email address');
+      return;
+    }
+    if (password.isEmpty) {
+      setState(() => _errorText = 'Password is required');
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _errorText = 'Password must be at least 6 characters');
+      return;
+    }
+    if (password != confirmPassword) {
+      setState(() => _errorText = 'Passwords do not match');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
       await _authService.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        name: _nameController.text.trim(),
+        email: email,
+        password: password,
+        name: name,
       );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Account created successfully! Please sign in.'),
+          content: Text('Account created successfully!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -119,7 +150,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   isObscure: true,
                   prefixIcon: Icons.lock_outline,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                if (_errorText != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      _errorText!,
+                      style: const TextStyle(color: AppColors.error, fontSize: 12),
+                    ),
+                  ),
+                const SizedBox(height: 24),
                 CustomButton(
                   text: 'Create Account',
                   isLoading: _isLoading,

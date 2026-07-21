@@ -1,9 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_colors.dart';
 
-class UserGrowthChart extends StatelessWidget {
+class UserGrowthChart extends StatefulWidget {
   const UserGrowthChart({super.key});
+
+  @override
+  State<UserGrowthChart> createState() => _UserGrowthChartState();
+}
+
+class _UserGrowthChartState extends State<UserGrowthChart> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+  List<_MonthData> _data = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final now = DateTime.now();
+      final months = <_MonthData>[];
+
+      for (int i = 11; i >= 0; i--) {
+        final date = DateTime(now.year, now.month - i, 1);
+        final nextMonth = DateTime(date.year, date.month + 1, 1);
+        final label = _monthLabel(date.month);
+
+        final result = await _supabase
+            .from('user_tbl')
+            .select('user_id')
+            .gte('created_at', date.toIso8601String())
+            .lt('created_at', nextMonth.toIso8601String());
+
+        months.add(_MonthData(label, (result as List).length.toDouble()));
+      }
+
+      if (mounted) {
+        setState(() {
+          _data = months;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _data = List.generate(12, (i) => _MonthData(_monthLabel(i + 1), 0));
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _monthLabel(int month) {
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return labels[month - 1];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,32 +69,23 @@ class UserGrowthChart extends StatelessWidget {
       subtitle: 'Monthly new user registrations',
       child: SizedBox(
         height: 220,
-        child: LineChart(_buildLineChartData()),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primaryNeon, strokeWidth: 2))
+            : LineChart(_buildLineChartData()),
       ),
     );
   }
 
   LineChartData _buildLineChartData() {
-    final data = [
-      _MonthData('Jan', 120),
-      _MonthData('Feb', 250),
-      _MonthData('Mar', 380),
-      _MonthData('Apr', 310),
-      _MonthData('May', 450),
-      _MonthData('Jun', 520),
-      _MonthData('Jul', 610),
-      _MonthData('Aug', 580),
-      _MonthData('Sep', 720),
-      _MonthData('Oct', 850),
-      _MonthData('Nov', 790),
-      _MonthData('Dec', 940),
-    ];
+    final maxY = _data.isEmpty
+        ? 10.0
+        : (_data.map((d) => d.value).reduce((a, b) => a > b ? a : b) * 1.2).clamp(10, double.infinity).toDouble();
 
     return LineChartData(
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
-        horizontalInterval: 200,
+        horizontalInterval: maxY / 5,
         getDrawingHorizontalLine: (value) => FlLine(
           color: AppColors.borderDark,
           strokeWidth: 0.5,
@@ -54,11 +102,11 @@ class UserGrowthChart extends StatelessWidget {
             interval: 1,
             getTitlesWidget: (value, meta) {
               final index = value.toInt();
-              if (index >= 0 && index < data.length) {
+              if (index >= 0 && index < _data.length) {
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    data[index].label,
+                    _data[index].label,
                     style: const TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 10,
@@ -73,14 +121,14 @@ class UserGrowthChart extends StatelessWidget {
       ),
       borderData: FlBorderData(show: false),
       minX: 0,
-      maxX: (data.length - 1).toDouble(),
+      maxX: (_data.length - 1).toDouble(),
       minY: 0,
-      maxY: 1100,
+      maxY: maxY,
       lineBarsData: [
         LineChartBarData(
           spots: List.generate(
-            data.length,
-            (i) => FlSpot(i.toDouble(), data[i].value.toDouble()),
+            _data.length,
+            (i) => FlSpot(i.toDouble(), _data[i].value),
           ),
           isCurved: true,
           curveSmoothness: 0.3,

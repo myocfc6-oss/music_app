@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/theme/app_theme.dart';
+import 'providers/auth_provider.dart';
+import 'providers/audio_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/track_provider.dart';
 import 'presentation/screens/welcome/welcome_screen.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
@@ -32,26 +37,40 @@ class SonusApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sonus Music',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/player': (context) => const PlayerScreen(),
-        '/album_detail': (context) => const AlbumDetailScreen(),
-        '/artist_detail': (context) => const ArtistDetailScreen(),
-        '/admin': (context) => const AdminDashboardScreen(),
-        '/admin/tracks': (context) => const TrackManagementScreen(),
-        '/admin/artists': (context) => const ArtistManagementScreen(),
-        '/admin/albums': (context) => const AlbumManagementScreen(),
-        '/admin/users': (context) => const UserManagementScreen(),
-        '/profile': (context) => const ProfileScreen(),
-      },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
+        ChangeNotifierProvider(create: (_) => AudioProvider()),
+        ChangeNotifierProvider(create: (_) => TrackProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'Sonus Music',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.darkTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            initialRoute: '/',
+            routes: {
+              '/': (context) => const WelcomeScreen(),
+              '/login': (context) => const LoginScreen(),
+              '/register': (context) => const RegisterScreen(),
+              '/home': (context) => const HomeScreen(),
+              '/player': (context) => const PlayerScreen(),
+              '/album_detail': (context) => const AlbumDetailScreen(),
+              '/artist_detail': (context) => const ArtistDetailScreen(),
+              '/admin': (context) => const AdminDashboardScreen(),
+              '/admin/tracks': (context) => const TrackManagementScreen(),
+              '/admin/artists': (context) => const ArtistManagementScreen(),
+              '/admin/albums': (context) => const AlbumManagementScreen(),
+              '/admin/users': (context) => const UserManagementScreen(),
+              '/profile': (context) => const ProfileScreen(),
+            },
+          );
+        },
+      ),
     );
   }
 }

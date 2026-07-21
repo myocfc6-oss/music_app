@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/playlist_model.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/track_provider.dart';
 import 'playlist_detail_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -11,23 +14,16 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  final List<PlaylistModel> _playlists = [
-    PlaylistModel(
-      playlistId: 1,
-      userId: '1',
-      title: 'Chill Vibes',
-    ),
-    PlaylistModel(
-      playlistId: 2,
-      userId: '1',
-      title: 'Workout Mix',
-    ),
-    PlaylistModel(
-      playlistId: 3,
-      userId: '1',
-      title: 'Late Night Drive',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      if (auth.user != null) {
+        context.read<TrackProvider>().fetchPlaylists(auth.user!.id);
+      }
+    });
+  }
 
   void _showCreatePlaylistDialog() {
     final nameController = TextEditingController();
@@ -56,15 +52,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
           TextButton(
             onPressed: () {
               if (nameController.text.trim().isNotEmpty) {
-                setState(() {
-                  _playlists.add(
-                    PlaylistModel(
-                      playlistId: _playlists.length + 1,
-                      userId: '1',
-                      title: nameController.text.trim(),
-                    ),
+                final auth = context.read<AuthProvider>();
+                if (auth.user != null) {
+                  context.read<TrackProvider>().createPlaylist(
+                    auth.user!.id,
+                    nameController.text.trim(),
                   );
-                });
+                }
               }
               Navigator.pop(context);
             },
@@ -80,63 +74,78 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          floating: true,
-          automaticallyImplyLeading: false,
-          title: const Text('Your Library'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.add_rounded),
-              onPressed: _showCreatePlaylistDialog,
+    return Consumer<TrackProvider>(
+      builder: (context, trackProvider, _) {
+        final playlists = trackProvider.playlists;
+
+        return CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              automaticallyImplyLeading: false,
+              title: const Text('Your Library'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: _showCreatePlaylistDialog,
+                ),
+              ],
             ),
+            if (trackProvider.isLoadingPlaylists)
+              const SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(48),
+                    child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                  ),
+                ),
+              )
+            else if (playlists.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(48),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.library_music_rounded,
+                        size: 64,
+                        color: AppColors.textMuted.withValues(alpha: 0.3),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No playlists yet',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Create your first playlist to get started',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) =>
+                        _buildPlaylistTile(playlists[index]),
+                    childCount: playlists.length,
+                  ),
+                ),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
-        ),
-        if (_playlists.isEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(48),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.library_music_rounded,
-                    size: 64,
-                    color: AppColors.textMuted.withValues(alpha: 0.3),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No playlists yet',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Create your first playlist to get started',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) =>
-                    _buildPlaylistTile(_playlists[index]),
-                childCount: _playlists.length,
-              ),
-            ),
-          ),
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
-      ],
+        );
+      },
     );
   }
 

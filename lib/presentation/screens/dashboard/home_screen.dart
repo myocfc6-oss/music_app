@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/track_model.dart';
 import '../../../data/models/album_model.dart';
+import '../../../providers/audio_provider.dart';
+import '../../../providers/track_provider.dart';
 import '../../global_widgets/mini_audio_player.dart';
 import '../search/search_screen.dart';
 import '../library/library_screen.dart';
 import '../now_playing/player_screen.dart';
 import '../profile/profile_screen.dart';
+import 'album_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,76 +22,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<TrackModel> _trendingTracks = [
-    TrackModel(
-      trackId: 1,
-      albumId: 1,
-      genresId: 1,
-      title: 'Midnight Pulse',
-      audioUrl: '',
-      duration: 234,
-      streamCount: 1500000,
-    ),
-    TrackModel(
-      trackId: 2,
-      albumId: 2,
-      genresId: 2,
-      title: 'Neon Skyline',
-      audioUrl: '',
-      duration: 198,
-      streamCount: 980000,
-    ),
-    TrackModel(
-      trackId: 3,
-      albumId: 3,
-      genresId: 3,
-      title: 'Velvet Echoes',
-      audioUrl: '',
-      duration: 267,
-      streamCount: 750000,
-    ),
-    TrackModel(
-      trackId: 4,
-      albumId: 1,
-      genresId: 1,
-      title: 'Distant Frequencies',
-      audioUrl: '',
-      duration: 312,
-      streamCount: 620000,
-    ),
-    TrackModel(
-      trackId: 5,
-      albumId: 4,
-      genresId: 4,
-      title: 'Golden Hour',
-      audioUrl: '',
-      duration: 185,
-      streamCount: 540000,
-    ),
-  ];
-
-  final List<AlbumModel> _recentAlbums = [
-    AlbumModel(
-      albumId: 1,
-      title: 'Electric Dreams',
-      releaseDate: DateTime(2025),
-    ),
-    AlbumModel(
-      albumId: 2,
-      title: 'City Lights',
-      releaseDate: DateTime(2025),
-    ),
-    AlbumModel(
-      albumId: 3,
-      title: 'Ocean Waves',
-      releaseDate: DateTime(2024),
-    ),
-    AlbumModel(
-      albumId: 4,
-      title: 'Sunset Boulevard',
-      releaseDate: DateTime(2024),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final trackProvider = context.read<TrackProvider>();
+      trackProvider.fetchTrendingTracks();
+      trackProvider.fetchAlbums();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,65 +83,116 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent() {
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          floating: true,
-          automaticallyImplyLeading: false,
-          title: const Text('Sonus'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {},
+    return Consumer<TrackProvider>(
+      builder: (context, trackProvider, _) {
+        final tracks = trackProvider.tracks;
+        final albums = trackProvider.albums;
+
+        return CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              floating: true,
+              automaticallyImplyLeading: false,
+              title: const Text('Sonus'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () {},
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
-            const SizedBox(width: 8),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Text(
+                  'Trending Now',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ),
+            if (trackProvider.isLoadingTracks)
+              const SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                  ),
+                ),
+              )
+            else if (tracks.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(
+                      'No tracks yet',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildTrackTile(tracks[index], tracks, index),
+                  childCount: tracks.length,
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                child: Text(
+                  'Recent Albums',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+            ),
+            if (trackProvider.isLoadingAlbums)
+              const SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                  ),
+                ),
+              )
+            else if (albums.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(
+                      'No albums yet',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.8,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => _buildAlbumCard(albums[index]),
+                    childCount: albums.length,
+                  ),
+                ),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Text(
-              'Trending Now',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) => _buildTrackTile(_trendingTracks[index]),
-            childCount: _trendingTracks.length,
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            child: Text(
-              'Recent Albums',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.8,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildAlbumCard(_recentAlbums[index]),
-              childCount: _recentAlbums.length,
-            ),
-          ),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildTrackTile(TrackModel track) {
+  Widget _buildTrackTile(TrackModel track, List<TrackModel> allTracks, int index) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
@@ -220,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        'Album ${track.albumId}',
+        track.artistName ?? '',
         style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
       ),
       trailing: Row(
@@ -235,6 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       onTap: () {
+        context.read<AudioProvider>().playTrackFromQueue(allTracks, index);
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -247,7 +242,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildAlbumCard(AlbumModel album) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AlbumDetailScreen(album: album),
+          ),
+        );
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -277,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           Text(
-            'Album ${album.albumId}',
+            album.artistName ?? '',
             style: const TextStyle(
               color: AppColors.textMuted,
               fontSize: 12,

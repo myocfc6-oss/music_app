@@ -7,6 +7,9 @@ class TrackModel {
   final int duration;
   final int streamCount;
   final DateTime? createdAt;
+  final String? artistName;
+  final String? albumTitle;
+  final String? genreName;
 
   TrackModel({
     required this.trackId,
@@ -17,9 +20,12 @@ class TrackModel {
     required this.duration,
     required this.streamCount,
     this.createdAt,
+    this.artistName,
+    this.albumTitle,
+    this.genreName,
   });
 
-  factory TrackModel.fromMap(Map<String, dynamic> map) {
+  factory TrackModel.fromMap(Map<String, dynamic> map, {String? artistName, String? albumTitle, String? genreName}) {
     return TrackModel(
       trackId: map['track_id'] is int
           ? map['track_id']
@@ -41,6 +47,9 @@ class TrackModel {
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'].toString())
           : null,
+      artistName: artistName,
+      albumTitle: albumTitle,
+      genreName: genreName,
     );
   }
 

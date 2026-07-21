@@ -1,9 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_colors.dart';
 
-class GenreDistributionChart extends StatelessWidget {
+class GenreDistributionChart extends StatefulWidget {
   const GenreDistributionChart({super.key});
+
+  @override
+  State<GenreDistributionChart> createState() => _GenreDistributionChartState();
+}
+
+class _GenreDistributionChartState extends State<GenreDistributionChart> {
+  final SupabaseClient _supabase = Supabase.instance.client;
+  List<_GenreData> _data = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final result = await _supabase
+          .from('genres_tbl')
+          .select('genres_id, name');
+
+      final genres = result as List;
+      final List<_GenreData> genreData = [];
+
+      for (final genre in genres) {
+        final tracks = await _supabase
+            .from('track_tbl')
+            .select('track_id')
+            .eq('genres_id', genre['genres_id']);
+
+        final count = (tracks as List).length;
+        if (count > 0) {
+          genreData.add(_GenreData(
+            genre['name'] ?? 'Unknown',
+            count.toDouble(),
+          ));
+        }
+      }
+
+      genreData.sort((a, b) => b.value.compareTo(a.value));
+
+      if (mounted) {
+        setState(() {
+          _data = genreData;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _data = [];
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Color _barColor(int index) {
+    final opacity = 1.0 - (index * 0.12).clamp(0.0, 0.7);
+    return AppColors.primaryNeon.withValues(alpha: opacity);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,28 +75,30 @@ class GenreDistributionChart extends StatelessWidget {
       subtitle: 'Distribution of tracks across genres',
       child: SizedBox(
         height: 220,
-        child: BarChart(_buildBarChartData()),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primaryNeon, strokeWidth: 2))
+            : _data.isEmpty
+                ? const Center(
+                    child: Text('No genre data available',
+                        style: TextStyle(color: AppColors.textMuted)),
+                  )
+                : BarChart(_buildBarChartData()),
       ),
     );
   }
 
   BarChartData _buildBarChartData() {
-    final data = [
-      _GenreData('Pop', 45, AppColors.primaryNeon),
-      _GenreData('Rock', 38, AppColors.primaryNeon.withValues(alpha: 0.8)),
-      _GenreData('Hip-Hop', 32, AppColors.primaryNeon.withValues(alpha: 0.6)),
-      _GenreData('R&B', 28, AppColors.primaryNeon.withValues(alpha: 0.5)),
-      _GenreData('Jazz', 22, AppColors.primaryNeon.withValues(alpha: 0.4)),
-      _GenreData('EDM', 18, AppColors.primaryNeon.withValues(alpha: 0.3)),
-    ];
+    final maxY = _data.isEmpty
+        ? 10.0
+        : (_data.map((d) => d.value).reduce((a, b) => a > b ? a : b) * 1.3).clamp(10, double.infinity).toDouble();
 
     return BarChartData(
       alignment: BarChartAlignment.spaceAround,
-      maxY: 55,
+      maxY: maxY,
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
-        horizontalInterval: 10,
+        horizontalInterval: maxY / 5,
         getDrawingHorizontalLine: (value) => FlLine(
           color: AppColors.borderDark,
           strokeWidth: 0.5,
@@ -49,11 +114,12 @@ class GenreDistributionChart extends StatelessWidget {
             reservedSize: 30,
             getTitlesWidget: (value, meta) {
               final index = value.toInt();
-              if (index >= 0 && index < data.length) {
+              if (index >= 0 && index < _data.length) {
+                final label = _data[index].label;
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
-                    data[index].label,
+                    label.length > 6 ? '${label.substring(0, 5)}..' : label,
                     style: const TextStyle(
                       color: AppColors.textMuted,
                       fontSize: 10,
@@ -68,18 +134,18 @@ class GenreDistributionChart extends StatelessWidget {
       ),
       borderData: FlBorderData(show: false),
       barGroups: List.generate(
-        data.length,
+        _data.length,
         (i) => BarChartGroupData(
           x: i,
           barRods: [
             BarChartRodData(
-              toY: data[i].value,
-              color: data[i].color,
+              toY: _data[i].value,
+              color: _barColor(i),
               width: 28,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
               backDrawRodData: BackgroundBarChartRodData(
                 show: true,
-                toY: 55,
+                toY: maxY,
                 color: AppColors.surfaceElevated,
               ),
             ),
@@ -92,7 +158,7 @@ class GenreDistributionChart extends StatelessWidget {
           tooltipRoundedRadius: 8,
           getTooltipItem: (group, groupIndex, rod, rodIndex) {
             return BarTooltipItem(
-              '${data[group.x].label}\n${rod.toY.toInt()} tracks',
+              '${_data[group.x].label}\n${rod.toY.toInt()} tracks',
               const TextStyle(
                 color: AppColors.primaryNeon,
                 fontWeight: FontWeight.w600,
@@ -171,7 +237,6 @@ class GenreDistributionChart extends StatelessWidget {
 class _GenreData {
   final String label;
   final double value;
-  final Color color;
 
-  const _GenreData(this.label, this.value, this.color);
+  const _GenreData(this.label, this.value);
 }

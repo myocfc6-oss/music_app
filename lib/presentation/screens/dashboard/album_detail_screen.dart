@@ -1,32 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/album_model.dart';
 import '../../../data/models/track_model.dart';
+import '../../../providers/audio_provider.dart';
+import '../../../providers/track_provider.dart';
 import '../now_playing/player_screen.dart';
 
-class AlbumDetailScreen extends StatelessWidget {
+class AlbumDetailScreen extends StatefulWidget {
   final AlbumModel? album;
 
   const AlbumDetailScreen({super.key, this.album});
 
-  static final _dummyAlbum = AlbumModel(
-    albumId: 1,
-    title: 'Electric Dreams',
-    releaseDate: DateTime(2025),
-  );
+  @override
+  State<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
+}
 
-  static final _dummyTracks = [
-    TrackModel(trackId: 1, albumId: 1, genresId: 1, title: 'Midnight Pulse', audioUrl: '', duration: 234, streamCount: 1500000),
-    TrackModel(trackId: 2, albumId: 1, genresId: 1, title: 'Neon Skyline', audioUrl: '', duration: 198, streamCount: 980000),
-    TrackModel(trackId: 3, albumId: 1, genresId: 1, title: 'Distant Frequencies', audioUrl: '', duration: 312, streamCount: 620000),
-    TrackModel(trackId: 4, albumId: 1, genresId: 1, title: 'Electric Pulse', audioUrl: '', duration: 256, streamCount: 410000),
-    TrackModel(trackId: 5, albumId: 1, genresId: 1, title: 'Dreamcatcher', audioUrl: '', duration: 280, streamCount: 350000),
-    TrackModel(trackId: 6, albumId: 1, genresId: 1, title: 'Starlight', audioUrl: '', duration: 205, streamCount: 290000),
-  ];
+class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
+  List<TrackModel> _tracks = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTracks();
+  }
+
+  Future<void> _loadTracks() async {
+    if (widget.album == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+    final tracks = await context.read<TrackProvider>().fetchTracksByAlbum(widget.album!.albumId);
+    if (mounted) {
+      setState(() {
+        _tracks = tracks;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final displayAlbum = album ?? _dummyAlbum;
+    final album = widget.album;
+
+    if (album == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Album')),
+        body: const Center(child: Text('No album selected', style: TextStyle(color: AppColors.textMuted))),
+      );
+    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -69,11 +92,16 @@ class AlbumDetailScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.album_rounded,
-                          size: 72,
-                          color: AppColors.primaryNeon,
-                        ),
+                        child: album.coverPng != null && album.coverPng!.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  album.coverPng!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(Icons.album_rounded, size: 72, color: AppColors.primaryNeon),
+                                ),
+                              )
+                            : const Icon(Icons.album_rounded, size: 72, color: AppColors.primaryNeon),
                       ),
                     ],
                   ),
@@ -88,21 +116,21 @@ class AlbumDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    displayAlbum.title,
+                    album.title,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Album ${displayAlbum.albumId}',
+                    album.artistName ?? '',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textMuted,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${displayAlbum.releaseDate?.year ?? "Unknown"} · ${_dummyTracks.length} tracks',
+                    '${album.releaseDate?.year ?? "Unknown"} · ${_tracks.length} tracks',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textMuted,
                     ),
@@ -112,7 +140,9 @@ class AlbumDetailScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: _tracks.isNotEmpty
+                              ? () => context.read<AudioProvider>().playTrackFromQueue(_tracks, 0)
+                              : null,
                           icon: const Icon(Icons.play_arrow_rounded, color: Colors.black),
                           label: const Text('Play', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
@@ -128,7 +158,12 @@ class AlbumDetailScreen extends StatelessWidget {
                         color: AppColors.textMuted,
                       ),
                       IconButton(
-                        onPressed: () {},
+                        onPressed: _tracks.isNotEmpty
+                            ? () {
+                                context.read<AudioProvider>().toggleShuffle();
+                                context.read<AudioProvider>().playTrackFromQueue(_tracks, 0);
+                              }
+                            : null,
                         icon: const Icon(Icons.shuffle_rounded),
                         color: AppColors.textMuted,
                       ),
@@ -139,39 +174,59 @@ class AlbumDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final track = _dummyTracks[index];
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                  leading: Text(
-                    '${index + 1}',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-                  ),
-                  title: Text(
-                    track.title,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                  ),
-                  subtitle: Text(
-                    track.durationFormatted,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.more_vert, color: AppColors.textMuted, size: 20),
-                    onPressed: () {},
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => PlayerScreen(track: track)),
-                    );
-                  },
-                );
-              },
-              childCount: _dummyTracks.length,
+          if (_isLoading)
+            const SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(48),
+                  child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                ),
+              ),
+            )
+          else if (_tracks.isEmpty)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(48),
+                child: Center(
+                  child: Text('No tracks in this album', style: TextStyle(color: AppColors.textMuted)),
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final track = _tracks[index];
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                    leading: Text(
+                      '${index + 1}',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                    ),
+                    title: Text(
+                      track.title,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
+                    subtitle: Text(
+                      track.durationFormatted,
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.more_vert, color: AppColors.textMuted, size: 20),
+                      onPressed: () {},
+                    ),
+                    onTap: () {
+                      context.read<AudioProvider>().playTrackFromQueue(_tracks, index);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => PlayerScreen(track: track)),
+                      );
+                    },
+                  );
+                },
+                childCount: _tracks.length,
+              ),
             ),
-          ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/artist_model.dart';
+import '../../../providers/track_provider.dart';
 import '../../global_widgets/custom_textfield.dart';
 
 class ArtistManagementScreen extends StatefulWidget {
@@ -11,36 +13,13 @@ class ArtistManagementScreen extends StatefulWidget {
 }
 
 class _ArtistManagementScreenState extends State<ArtistManagementScreen> {
-  final List<ArtistModel> _artists = [
-    ArtistModel(
-      artistId: 1,
-      name: 'Aurora Beats',
-      profilePic: 'https://i.pravatar.cc/150?img=1',
-    ),
-    ArtistModel(
-      artistId: 2,
-      name: 'Luna Wave',
-      profilePic: 'https://i.pravatar.cc/150?img=2',
-    ),
-    ArtistModel(
-      artistId: 3,
-      name: 'Neon Drift',
-    ),
-    ArtistModel(
-      artistId: 4,
-      name: 'Solar Echo',
-      profilePic: 'https://i.pravatar.cc/150?img=4',
-    ),
-    ArtistModel(
-      artistId: 5,
-      name: 'Violet Haze',
-    ),
-    ArtistModel(
-      artistId: 6,
-      name: 'Ember Soul',
-      profilePic: 'https://i.pravatar.cc/150?img=6',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TrackProvider>().fetchArtists();
+    });
+  }
 
   void _showAddDialog() {
     final nameController = TextEditingController();
@@ -55,17 +34,10 @@ class _ArtistManagementScreenState extends State<ArtistManagementScreen> {
         confirmLabel: 'Add',
         onConfirm: () {
           if (nameController.text.trim().isNotEmpty) {
-            setState(() {
-              _artists.add(ArtistModel(
-                artistId: _artists.isEmpty
-                    ? 1
-                    : _artists.map((a) => a.artistId).reduce((a, b) => a > b ? a : b) + 1,
-                name: nameController.text.trim(),
-                profilePic: imageController.text.trim().isEmpty
-                    ? null
-                    : imageController.text.trim(),
-              ));
-            });
+            context.read<TrackProvider>().createArtist(
+              nameController.text.trim(),
+              profilePic: imageController.text.trim().isEmpty ? null : imageController.text.trim(),
+            );
           }
         },
       ),
@@ -85,18 +57,11 @@ class _ArtistManagementScreenState extends State<ArtistManagementScreen> {
         confirmLabel: 'Save',
         onConfirm: () {
           if (nameController.text.trim().isNotEmpty) {
-            setState(() {
-              final index = _artists.indexWhere((a) => a.artistId == artist.artistId);
-              if (index != -1) {
-                _artists[index] = ArtistModel(
-                  artistId: artist.artistId,
-                  name: nameController.text.trim(),
-                  profilePic: imageController.text.trim().isEmpty
-                      ? null
-                      : imageController.text.trim(),
-                );
-              }
-            });
+            context.read<TrackProvider>().updateArtist(
+              artist.artistId,
+              nameController.text.trim(),
+              profilePic: imageController.text.trim().isEmpty ? null : imageController.text.trim(),
+            );
           }
         },
       ),
@@ -109,19 +74,11 @@ class _ArtistManagementScreenState extends State<ArtistManagementScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Delete Artist',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${artist.name}"?',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
+        title: const Text('Delete Artist', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('Are you sure you want to delete "${artist.name}"?',
+            style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete', style: TextStyle(color: AppColors.error)),
@@ -130,7 +87,7 @@ class _ArtistManagementScreenState extends State<ArtistManagementScreen> {
       ),
     ).then((confirmed) {
       if (confirmed == true) {
-        setState(() => _artists.removeWhere((a) => a.artistId == artist.artistId));
+        context.read<TrackProvider>().deleteArtist(artist.artistId);
       }
     });
   }
@@ -144,59 +101,53 @@ class _ArtistManagementScreenState extends State<ArtistManagementScreen> {
         onPressed: _showAddDialog,
         child: const Icon(Icons.add_rounded, color: Colors.black),
       ),
-      body: _artists.isEmpty
-          ? const Center(
-              child: Text('No artists yet', style: TextStyle(color: AppColors.textMuted)),
-            )
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final crossAxisCount = width > 900
-                    ? 4
-                    : width > 600
-                        ? 3
-                        : 2;
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: _artists.length,
-                  itemBuilder: (context, index) {
-                    return _ArtistCard(
-                      artist: _artists[index],
-                      onEdit: () => _showEditDialog(_artists[index]),
-                      onDelete: () => _deleteArtist(_artists[index]),
-                    );
-                  },
-                );
-              },
-            ),
+      body: Consumer<TrackProvider>(
+        builder: (context, tp, _) {
+          final artists = tp.artists;
+          if (artists.isEmpty) {
+            return const Center(child: Text('No artists yet', style: TextStyle(color: AppColors.textMuted)));
+          }
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final crossAxisCount = width > 900 ? 4 : width > 600 ? 3 : 2;
+              return GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.75,
+                ),
+                itemCount: artists.length,
+                itemBuilder: (context, index) {
+                  final artist = artists[index];
+                  return _ArtistCard(
+                    artist: artist,
+                    onEdit: () => _showEditDialog(artist),
+                    onDelete: () => _deleteArtist(artist),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
-
-// ──────────────────────────────────────────────────────
-//  Artist Card
-// ──────────────────────────────────────────────────────
 
 class _ArtistCard extends StatelessWidget {
   final ArtistModel artist;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _ArtistCard({
-    required this.artist,
-    required this.onEdit,
-    required this.onDelete,
-  });
+  const _ArtistCard({required this.artist, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = artist.profilePic != null && artist.profilePic!.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
@@ -210,99 +161,56 @@ class _ArtistCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _buildImage(),
-                _buildActionButtons(),
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: hasImage
+                      ? Image.network(artist.profilePic!, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _fallbackIcon())
+                      : _fallbackIcon(),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Column(
+                    children: [
+                      _ActionChip(icon: Icons.edit_rounded, onTap: onEdit),
+                      const SizedBox(height: 6),
+                      _ActionChip(icon: Icons.delete_rounded, color: AppColors.error, onTap: onDelete),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          _buildNameLabel(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+            child: Text(
+              artist.name,
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildImage() {
-    final hasImage = artist.profilePic != null && artist.profilePic!.isNotEmpty;
-
-    return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: hasImage
-          ? Image.network(
-              artist.profilePic!,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(),
-            )
-          : _buildFallbackIcon(),
-    );
-  }
-
-  Widget _buildFallbackIcon() {
+  Widget _fallbackIcon() {
     return Container(
       color: AppColors.surfaceElevated,
-      child: const Icon(
-        Icons.person_rounded,
-        size: 48,
-        color: AppColors.primaryNeon,
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Positioned(
-      top: 8,
-      right: 8,
-      child: Column(
-        children: [
-          _ActionChip(
-            icon: Icons.edit_rounded,
-            onTap: onEdit,
-          ),
-          const SizedBox(height: 6),
-          _ActionChip(
-            icon: Icons.delete_rounded,
-            color: AppColors.error,
-            onTap: onDelete,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNameLabel() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-      child: Text(
-        artist.name,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: TextAlign.center,
-      ),
+      child: const Icon(Icons.person_rounded, size: 48, color: AppColors.primaryNeon),
     );
   }
 }
-
-// ──────────────────────────────────────────────────────
-//  Action Chip (edit / delete buttons)
-// ──────────────────────────────────────────────────────
 
 class _ActionChip extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionChip({
-    required this.icon,
-    this.color = AppColors.textMuted,
-    required this.onTap,
-  });
+  const _ActionChip({required this.icon, this.color = AppColors.textMuted, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -311,19 +219,12 @@ class _ActionChip extends StatelessWidget {
       child: Container(
         width: 32,
         height: 32,
-        decoration: BoxDecoration(
-          color: AppColors.overlay,
-          borderRadius: BorderRadius.circular(8),
-        ),
+        decoration: BoxDecoration(color: AppColors.overlay, borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: color, size: 18),
       ),
     );
   }
 }
-
-// ──────────────────────────────────────────────────────
-//  Add / Edit Dialog
-// ──────────────────────────────────────────────────────
 
 class _ArtistDialog extends StatelessWidget {
   final String title;
@@ -349,32 +250,19 @@ class _ArtistDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CustomTextField(
-            hintText: 'Artist Name',
-            controller: nameController,
-          ),
+          CustomTextField(hintText: 'Artist Name', controller: nameController),
           const SizedBox(height: 12),
-          CustomTextField(
-            hintText: 'Image URL (optional)',
-            controller: imageController,
-            prefixIcon: Icons.link_rounded,
-          ),
+          CustomTextField(hintText: 'Image URL (optional)', controller: imageController, prefixIcon: Icons.link_rounded),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         TextButton(
           onPressed: () {
             onConfirm();
             Navigator.pop(context);
           },
-          child: Text(
-            confirmLabel,
-            style: const TextStyle(color: AppColors.primaryNeon),
-          ),
+          child: Text(confirmLabel, style: const TextStyle(color: AppColors.primaryNeon)),
         ),
       ],
     );

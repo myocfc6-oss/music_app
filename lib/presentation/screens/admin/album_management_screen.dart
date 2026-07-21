@@ -1,10 +1,8 @@
-import 'dart:typed_data';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/album_model.dart';
+import '../../../providers/track_provider.dart';
 import '../../global_widgets/custom_textfield.dart';
 
 class AlbumManagementScreen extends StatefulWidget {
@@ -15,74 +13,37 @@ class AlbumManagementScreen extends StatefulWidget {
 }
 
 class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
-  final List<AlbumModel> _albums = [
-    AlbumModel(
-      albumId: 1,
-      title: 'Electric Dreams',
-      releaseDate: DateTime(2025),
-      coverPng: 'https://picsum.photos/seed/album1/400/400',
-    ),
-    AlbumModel(
-      albumId: 2,
-      title: 'City Lights',
-      releaseDate: DateTime(2025),
-      coverPng: 'https://picsum.photos/seed/album2/400/400',
-    ),
-    AlbumModel(
-      albumId: 3,
-      title: 'Ocean Waves',
-      releaseDate: DateTime(2024),
-      coverPng: 'https://picsum.photos/seed/album3/400/400',
-    ),
-    AlbumModel(
-      albumId: 4,
-      title: 'Neon Skyline',
-      releaseDate: DateTime(2024),
-    ),
-    AlbumModel(
-      albumId: 5,
-      title: 'Midnight Pulse',
-      releaseDate: DateTime(2023),
-      coverPng: 'https://picsum.photos/seed/album5/400/400',
-    ),
-  ];
-
-  int _nextId() {
-    if (_albums.isEmpty) return 1;
-    return _albums.map((a) => a.albumId).reduce((a, b) => a > b ? a : b) + 1;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final tp = context.read<TrackProvider>();
+      tp.fetchAlbums();
+      tp.fetchArtists();
+    });
   }
 
   void _showAddDialog() {
     final titleCtrl = TextEditingController();
-    final yearCtrl = TextEditingController();
     final imageCtrl = TextEditingController();
-    Uint8List? localBytes;
+    DateTime? selectedDate;
 
     showDialog(
       context: context,
       builder: (ctx) => _AlbumDialog(
         dialogTitle: 'Add Album',
         titleController: titleCtrl,
-        yearController: yearCtrl,
+        selectedDate: selectedDate,
         imageController: imageCtrl,
         confirmLabel: 'Add',
+        onDateChanged: (date) => selectedDate = date,
         onConfirm: () {
           if (titleCtrl.text.trim().isEmpty) return;
-          final imgUrl = imageCtrl.text.trim();
-          setState(() {
-            _albums.add(AlbumModel(
-              albumId: _nextId(),
-              title: titleCtrl.text.trim(),
-              releaseDate: int.tryParse(yearCtrl.text) != null
-                  ? DateTime(int.parse(yearCtrl.text))
-                  : null,
-              coverPng: imgUrl.isNotEmpty ? imgUrl : null,
-            ));
-          });
-        },
-        initialLocalBytes: localBytes,
-        onBytesPicked: (bytes) {
-          localBytes = bytes;
+          context.read<TrackProvider>().createAlbum(
+            titleCtrl.text.trim(),
+            releaseDate: selectedDate,
+            coverPng: imageCtrl.text.trim().isEmpty ? null : imageCtrl.text.trim(),
+          );
         },
       ),
     );
@@ -90,39 +51,26 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
 
   void _showEditDialog(AlbumModel album) {
     final titleCtrl = TextEditingController(text: album.title);
-    final yearCtrl =
-        TextEditingController(text: album.releaseDate?.toString() ?? '');
     final imageCtrl = TextEditingController(text: album.coverPng ?? '');
-    Uint8List? localBytes;
+    DateTime? selectedDate = album.releaseDate;
 
     showDialog(
       context: context,
       builder: (ctx) => _AlbumDialog(
         dialogTitle: 'Edit Album',
         titleController: titleCtrl,
-        yearController: yearCtrl,
+        selectedDate: selectedDate,
         imageController: imageCtrl,
         confirmLabel: 'Save',
+        onDateChanged: (date) => selectedDate = date,
         onConfirm: () {
           if (titleCtrl.text.trim().isEmpty) return;
-          final imgUrl = imageCtrl.text.trim();
-          setState(() {
-            final idx = _albums.indexWhere((a) => a.albumId == album.albumId);
-            if (idx != -1) {
-              _albums[idx] = AlbumModel(
-                albumId: album.albumId,
-                title: titleCtrl.text.trim(),
-                releaseDate: int.tryParse(yearCtrl.text) != null
-                    ? DateTime(int.parse(yearCtrl.text))
-                    : null,
-                coverPng: imgUrl.isNotEmpty ? imgUrl : album.coverPng,
-              );
-            }
-          });
-        },
-        initialLocalBytes: localBytes,
-        onBytesPicked: (bytes) {
-          localBytes = bytes;
+          context.read<TrackProvider>().updateAlbum(
+            album.albumId,
+            titleCtrl.text.trim(),
+            releaseDate: selectedDate,
+            coverPng: imageCtrl.text.trim().isEmpty ? null : imageCtrl.text.trim(),
+          );
         },
       ),
     );
@@ -134,29 +82,20 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Delete Album',
-          style: TextStyle(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${album.title}"?',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
+        title: const Text('Delete Album', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('Are you sure you want to delete "${album.title}"?',
+            style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete',
-                style: TextStyle(color: AppColors.error)),
+            child: const Text('Delete', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
     ).then((confirmed) {
       if (confirmed == true) {
-        setState(() => _albums.removeWhere((a) => a.albumId == album.albumId));
+        context.read<TrackProvider>().deleteAlbum(album.albumId);
       }
     });
   }
@@ -170,63 +109,53 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
         onPressed: _showAddDialog,
         child: const Icon(Icons.add_rounded, color: Colors.black),
       ),
-      body: _albums.isEmpty
-          ? const Center(
-              child: Text(
-                'No albums yet',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-            )
-          : LayoutBuilder(
-              builder: (context, constraints) {
-                final w = constraints.maxWidth;
-                final crossAxisCount = w > 900
-                    ? 4
-                    : w > 600
-                        ? 3
-                        : 2;
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: _albums.length,
-                  itemBuilder: (context, index) {
-                    final album = _albums[index];
-                    return _AlbumCard(
-                      album: album,
-                      onEdit: () => _showEditDialog(album),
-                      onDelete: () => _deleteAlbum(album),
-                    );
-                  },
-                );
-              },
-            ),
+      body: Consumer<TrackProvider>(
+        builder: (context, tp, _) {
+          final albums = tp.albums;
+          if (albums.isEmpty) {
+            return const Center(child: Text('No albums yet', style: TextStyle(color: AppColors.textMuted)));
+          }
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final w = constraints.maxWidth;
+              final crossAxisCount = w > 900 ? 4 : w > 600 ? 3 : 2;
+              return GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.75,
+                ),
+                itemCount: albums.length,
+                itemBuilder: (context, index) {
+                  final album = albums[index];
+                  return _AlbumCard(
+                    album: album,
+                    onEdit: () => _showEditDialog(album),
+                    onDelete: () => _deleteAlbum(album),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
-
-// ──────────────────────────────────────────────────────
-//  Album Card
-// ──────────────────────────────────────────────────────
 
 class _AlbumCard extends StatelessWidget {
   final AlbumModel album;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _AlbumCard({
-    required this.album,
-    required this.onEdit,
-    required this.onDelete,
-  });
+  const _AlbumCard({required this.album, required this.onEdit, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = album.coverPng != null && album.coverPng!.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
@@ -240,153 +169,87 @@ class _AlbumCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _buildImage(),
-                _buildActionButtons(),
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: hasImage
+                      ? Image.network(album.coverPng!, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _fallback())
+                      : _fallback(),
+                ),
+                Positioned(
+                  top: 8, right: 8,
+                  child: Column(
+                    children: [
+                      _ActionChip(icon: Icons.edit_rounded, onTap: onEdit),
+                      const SizedBox(height: 6),
+                      _ActionChip(icon: Icons.delete_rounded, color: AppColors.error, onTap: onDelete),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          _buildInfoBar(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(album.title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text('${album.releaseDate?.year ?? "—"}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildImage() {
-    final url = album.coverPng;
-    final hasImage = url != null && url.isNotEmpty;
-
-    return Container(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: hasImage
-          ? Image.network(
-              url,
-              fit: BoxFit.cover,
-              errorBuilder: (ctx, err, st) => _buildFallback(),
-            )
-          : _buildFallback(),
-    );
-  }
-
-  Widget _buildFallback() {
+  Widget _fallback() {
     return Container(
       color: AppColors.surfaceElevated,
-      child: const Icon(
-        Icons.album_rounded,
-        size: 48,
-        color: AppColors.primaryNeon,
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Positioned(
-      top: 8,
-      right: 8,
-      child: Column(
-        children: [
-          _ActionChip(icon: Icons.edit_rounded, onTap: onEdit),
-          const SizedBox(height: 6),
-          _ActionChip(
-            icon: Icons.delete_rounded,
-            color: AppColors.error,
-            onTap: onDelete,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoBar() {
-    final yearText =
-        album.releaseDate != null ? '${album.releaseDate!.year}' : '—';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            album.title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            yearText,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
+      child: const Icon(Icons.album_rounded, size: 48, color: AppColors.primaryNeon),
     );
   }
 }
-
-// ──────────────────────────────────────────────────────
-//  Action Chip (edit / delete)
-// ──────────────────────────────────────────────────────
 
 class _ActionChip extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionChip({
-    required this.icon,
-    this.color = AppColors.textMuted,
-    required this.onTap,
-  });
+  const _ActionChip({required this.icon, this.color = AppColors.textMuted, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: AppColors.overlay,
-          borderRadius: BorderRadius.circular(8),
-        ),
+        width: 32, height: 32,
+        decoration: BoxDecoration(color: AppColors.overlay, borderRadius: BorderRadius.circular(8)),
         child: Icon(icon, color: color, size: 18),
       ),
     );
   }
 }
 
-// ──────────────────────────────────────────────────────
-//  Add / Edit Dialog
-// ──────────────────────────────────────────────────────
-
 class _AlbumDialog extends StatefulWidget {
   final String dialogTitle;
   final TextEditingController titleController;
-  final TextEditingController yearController;
+  final DateTime? selectedDate;
   final TextEditingController imageController;
   final String confirmLabel;
-  final Uint8List? initialLocalBytes;
-  final ValueChanged<Uint8List?> onBytesPicked;
+  final ValueChanged<DateTime?> onDateChanged;
   final VoidCallback onConfirm;
 
   const _AlbumDialog({
     required this.dialogTitle,
     required this.titleController,
-    required this.yearController,
+    this.selectedDate,
     required this.imageController,
     required this.confirmLabel,
-    this.initialLocalBytes,
-    required this.onBytesPicked,
+    required this.onDateChanged,
     required this.onConfirm,
   });
 
@@ -395,150 +258,103 @@ class _AlbumDialog extends StatefulWidget {
 }
 
 class _AlbumDialogState extends State<_AlbumDialog> {
-  Uint8List? _localBytes;
+  late DateTime? _selectedDate;
 
   @override
   void initState() {
     super.initState();
-    _localBytes = widget.initialLocalBytes;
+    _selectedDate = widget.selectedDate;
   }
 
-  Future<void> _pickLocalImage() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.image);
-      if (result != null && result.files.single.bytes != null) {
-        final bytes = result.files.single.bytes!;
-        setState(() => _localBytes = bytes);
-        widget.imageController.clear();
-        widget.onBytesPicked(bytes);
-      }
-    } catch (_) {
-      // File picker cancelled or unavailable
-    }
-  }
-
-  Widget _buildPreview() {
-    final url = widget.imageController.text.trim();
-    final hasUrl = url.isNotEmpty;
-    final hasLocal = _localBytes != null && _localBytes!.isNotEmpty;
-
-    if (!hasUrl && !hasLocal) {
-      return Container(
-        height: 160,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.image_outlined, size: 40, color: AppColors.textMuted),
-            SizedBox(height: 8),
-            Text('No image selected',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-          ],
-        ),
-      );
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        height: 160,
-        width: double.infinity,
-        child: hasUrl
-            ? Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (ctx, err, st) => Container(
-                  color: AppColors.surfaceElevated,
-                  child: const Center(
-                    child: Text('Failed to load image',
-                        style: TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
-                  ),
-                ),
-              )
-            : Image.memory(
-                _localBytes!,
-                fit: BoxFit.cover,
-                errorBuilder: (ctx, err, st) => Container(
-                  color: AppColors.surfaceElevated,
-                  child: const Center(
-                    child: Text('Failed to load image',
-                        style: TextStyle(
-                            color: AppColors.textMuted, fontSize: 12)),
-                  ),
-                ),
-              ),
-      ),
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime(2024),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.primaryNeon,
+              onPrimary: Colors.black,
+              surface: AppColors.surfaceCard,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+      widget.onDateChanged(picked);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final dateText = _selectedDate != null
+        ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+        : '';
+
     return AlertDialog(
       backgroundColor: AppColors.surfaceCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text(widget.dialogTitle,
-          style: const TextStyle(color: AppColors.textPrimary)),
+      title: Text(widget.dialogTitle, style: const TextStyle(color: AppColors.textPrimary)),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CustomTextField(
-              hintText: 'Album Title',
-              controller: widget.titleController,
-            ),
+            CustomTextField(hintText: 'Album Title', controller: widget.titleController),
             const SizedBox(height: 12),
-            CustomTextField(
-              hintText: 'Release Year',
-              controller: widget.yearController,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            CustomTextField(
-              hintText: 'Image URL (optional)',
-              controller: widget.imageController,
-              prefixIcon: Icons.link_rounded,
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _pickLocalImage,
-                icon: const Icon(Icons.folder_open_rounded, size: 18),
-                label: const Text('Pick from device'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textSecondary,
-                  side: const BorderSide(color: AppColors.borderDark),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+            GestureDetector(
+              onTap: _pickDate,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.borderDark),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, color: AppColors.textMuted, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        dateText.isEmpty ? 'Release Date (optional)' : dateText,
+                        style: TextStyle(
+                          color: dateText.isEmpty ? AppColors.textMuted : AppColors.textPrimary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    if (_selectedDate != null)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedDate = null);
+                          widget.onDateChanged(null);
+                        },
+                        child: const Icon(Icons.close_rounded, color: AppColors.textMuted, size: 18),
+                      ),
+                  ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
-            _buildPreview(),
+            CustomTextField(hintText: 'Cover Image URL (optional)', controller: widget.imageController, prefixIcon: Icons.link_rounded),
           ],
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         TextButton(
           onPressed: () {
             widget.onConfirm();
             Navigator.pop(context);
           },
-          child: Text(
-            widget.confirmLabel,
-            style: const TextStyle(color: AppColors.primaryNeon),
-          ),
+          child: Text(widget.confirmLabel, style: const TextStyle(color: AppColors.primaryNeon)),
         ),
       ],
     );

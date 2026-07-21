@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   bool _isLoading = false;
+  String? _errorText;
 
   @override
   void dispose() {
@@ -28,7 +29,27 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
-    if (!_formKey.currentState!.validate()) return;
+    setState(() => _errorText = null);
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty) {
+      setState(() => _errorText = 'Email is required');
+      return;
+    }
+    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      setState(() => _errorText = 'Enter a valid email address');
+      return;
+    }
+    if (password.isEmpty) {
+      setState(() => _errorText = 'Password is required');
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _errorText = 'Password must be at least 6 characters');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -102,6 +123,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   isObscure: true,
                   prefixIcon: Icons.lock_outline,
                 ),
+                const SizedBox(height: 8),
+                if (_errorText != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      _errorText!,
+                      style: const TextStyle(color: AppColors.error, fontSize: 12),
+                    ),
+                  ),
                 const SizedBox(height: 32),
                 CustomButton(
                   text: 'Sign In',

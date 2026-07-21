@@ -4,6 +4,7 @@ class AlbumModel {
   final DateTime? releaseDate;
   final String? coverPng;
   final DateTime? createdAt;
+  final String? artistName;
 
   AlbumModel({
     required this.albumId,
@@ -11,9 +12,10 @@ class AlbumModel {
     this.releaseDate,
     this.coverPng,
     this.createdAt,
+    this.artistName,
   });
 
-  factory AlbumModel.fromMap(Map<String, dynamic> map) {
+  factory AlbumModel.fromMap(Map<String, dynamic> map, {String? artistName}) {
     return AlbumModel(
       albumId: map['album_id'] is int
           ? map['album_id']
@@ -26,6 +28,7 @@ class AlbumModel {
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'].toString())
           : null,
+      artistName: artistName,
     );
   }
 

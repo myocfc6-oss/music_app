@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/genre_model.dart';
 import '../../../data/models/track_model.dart';
+import '../../../providers/audio_provider.dart';
+import '../../../providers/track_provider.dart';
 import 'widgets/genre_card.dart';
 import '../now_playing/player_screen.dart';
 
@@ -14,28 +17,19 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
+  List<GenreModel> _genres = [];
 
-  final List<GenreModel> _genres = [
-    GenreModel(genresId: 1, name: 'Pop'),
-    GenreModel(genresId: 2, name: 'Rock'),
-    GenreModel(genresId: 3, name: 'Hip-Hop'),
-    GenreModel(genresId: 4, name: 'Electronic'),
-    GenreModel(genresId: 5, name: 'Jazz'),
-    GenreModel(genresId: 6, name: 'Classical'),
-    GenreModel(genresId: 7, name: 'R&B'),
-    GenreModel(genresId: 8, name: 'Country'),
-  ];
-
-  final List<TrackModel> _allTracks = [
-    TrackModel(trackId: 1, albumId: 1, genresId: 1, title: 'Midnight Pulse', audioUrl: '', duration: 234, streamCount: 1500000),
-    TrackModel(trackId: 2, albumId: 2, genresId: 2, title: 'Neon Skyline', audioUrl: '', duration: 198, streamCount: 980000),
-    TrackModel(trackId: 3, albumId: 3, genresId: 5, title: 'Velvet Echoes', audioUrl: '', duration: 267, streamCount: 750000),
-    TrackModel(trackId: 4, albumId: 1, genresId: 1, title: 'Distant Frequencies', audioUrl: '', duration: 312, streamCount: 620000),
-    TrackModel(trackId: 5, albumId: 4, genresId: 7, title: 'Golden Hour', audioUrl: '', duration: 185, streamCount: 540000),
-  ];
-
-  List<TrackModel> _searchResults = [];
-  bool _isSearching = false;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final trackProvider = context.read<TrackProvider>();
+      trackProvider.fetchGenres();
+      setState(() {
+        _genres = trackProvider.genres;
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -44,114 +38,108 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _searchTracks(String query) {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-      _searchResults = _allTracks
-          .where((t) => t.title.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
+    context.read<TrackProvider>().searchTracks(query);
   }
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _searchTracks,
-              style: const TextStyle(color: AppColors.textPrimary),
-              cursorColor: AppColors.primaryNeon,
-              decoration: InputDecoration(
-                hintText: 'Search songs, artists...',
-                prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: AppColors.textMuted),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchTracks('');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppColors.surfaceCard,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primaryNeon),
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (_isSearching && _searchResults.isNotEmpty)
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => _buildSearchResult(_searchResults[index]),
-                childCount: _searchResults.length,
-              ),
-            ),
-          )
-        else if (_isSearching && _searchResults.isEmpty)
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(
-                child: Text(
-                  'No results found',
-                  style: TextStyle(color: AppColors.textMuted),
+    return Consumer<TrackProvider>(
+      builder: (context, trackProvider, _) {
+        final searchResults = trackProvider.searchResults;
+        final isSearching = _searchController.text.isNotEmpty;
+
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _searchTracks,
+                  style: const TextStyle(color: AppColors.textPrimary),
+                  cursorColor: AppColors.primaryNeon,
+                  decoration: InputDecoration(
+                    hintText: 'Search songs, artists...',
+                    prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: AppColors.textMuted),
+                            onPressed: () {
+                              _searchController.clear();
+                              _searchTracks('');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.surfaceCard,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primaryNeon),
+                    ),
+                  ),
                 ),
               ),
             ),
-          )
-        else ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Text(
-                'Browse Genres',
-                style: Theme.of(context).textTheme.titleLarge,
+            if (isSearching && searchResults.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => _buildSearchResult(searchResults[index], searchResults, index),
+                    childCount: searchResults.length,
+                  ),
+                ),
+              )
+            else if (isSearching && searchResults.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(
+                      'No results found',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
+                  ),
+                ),
+              )
+            else ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  child: Text(
+                    'Browse Genres',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
               ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.8,
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.8,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => GenreCard(genre: _genres[index]),
+                    childCount: _genres.length,
+                  ),
+                ),
               ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => GenreCard(genre: _genres[index]),
-                childCount: _genres.length,
-              ),
-            ),
-          ),
-        ],
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
-      ],
+            ],
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildSearchResult(TrackModel track) {
+  Widget _buildSearchResult(TrackModel track, List<TrackModel> allTracks, int index) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       leading: Container(
@@ -173,7 +161,7 @@ class _SearchScreenState extends State<SearchScreen> {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        'Album ${track.albumId}',
+        track.artistName ?? '',
         style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
       ),
       trailing: Text(
@@ -181,6 +169,7 @@ class _SearchScreenState extends State<SearchScreen> {
         style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
       ),
       onTap: () {
+        context.read<AudioProvider>().playTrackFromQueue(allTracks, index);
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => PlayerScreen(track: track)),

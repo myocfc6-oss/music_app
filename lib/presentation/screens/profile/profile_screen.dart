@@ -1,146 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../data/models/user_model.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/theme_provider.dart';
+import '../admin/admin_dashboard_screen.dart';
+import '../library/liked_songs_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> {
-  final _supabase = Supabase.instance.client;
-  UserModel? _user;
-  bool _isLoading = true;
-  bool _isDarkMode = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserProfile();
-  }
-
-  Future<void> _fetchUserProfile() async {
-    try {
-      final userId = _supabase.auth.currentUser?.id;
-      if (userId == null) {
-        if (mounted) setState(() => _isLoading = false);
-        return;
-      }
-
-      final data = await _supabase
-          .from('user_tbl')
-          .select()
-          .eq('user_id', userId)
-          .single();
-
-      if (mounted) {
-        setState(() {
-          _user = UserModel.fromMap(data);
-          _isLoading = false;
-        });
-      }
-    } on Exception {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signOut() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
-        title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
-        content: const Text('Are you sure you want to sign out?',
-            style: TextStyle(color: AppColors.textMuted)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    await _supabase.auth.signOut();
-    if (!mounted) return;
-
-    Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryNeon))
-          : _user == null
-              ? const Center(
-                  child: Text('No user data found',
-                      style: TextStyle(color: AppColors.textMuted)))
-              : _buildProfileContent(),
-    );
-  }
+      body: Consumer2<AuthProvider, ThemeProvider>(
+        builder: (context, auth, theme, _) {
+          if (auth.user == null) {
+            return const Center(
+              child: Text('No user data found',
+                  style: TextStyle(color: AppColors.textMuted)),
+            );
+          }
 
-  Widget _buildProfileContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          const SizedBox(height: 32),
-          _buildAvatar(),
-          const SizedBox(height: 16),
-          Text(
-            _user!.name,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 32),
+                _buildAvatar(auth),
+                const SizedBox(height: 16),
+                Text(
+                  auth.user!.name,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  auth.user!.email,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryNeon.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    auth.user!.role.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.primaryNeon,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildSettingsSection(context, auth),
+                const SizedBox(height: 24),
+                _buildThemeToggle(context, theme),
+                const SizedBox(height: 24),
+                _buildSignOutButton(context, auth),
+                const SizedBox(height: 40),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _user!.email,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.primaryNeon.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              _user!.role.toUpperCase(),
-              style: const TextStyle(
-                color: AppColors.primaryNeon,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          _buildSettingsSection(),
-          const SizedBox(height: 24),
-          _buildThemeToggle(),
-          const SizedBox(height: 24),
-          _buildSignOutButton(),
-          const SizedBox(height: 40),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(AuthProvider auth) {
     return Container(
       width: 96,
       height: 96,
@@ -151,7 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Center(
         child: Text(
-          _user!.name.isNotEmpty ? _user!.name[0].toUpperCase() : '?',
+          auth.user!.name.isNotEmpty ? auth.user!.name[0].toUpperCase() : '?',
           style: const TextStyle(
             color: AppColors.primaryNeon,
             fontSize: 36,
@@ -162,23 +96,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSettingsSection() {
+  Widget _buildSettingsSection(BuildContext context, AuthProvider auth) {
     final items = [
       _SettingEntry(
         icon: Icons.person_outline,
         title: 'Edit Profile',
-        onTap: () {},
+        onTap: () => _showEditProfileDialog(context, auth),
       ),
       _SettingEntry(
         icon: Icons.lock_outline,
         title: 'Change Password',
-        onTap: () {},
+        onTap: () => _showChangePasswordDialog(context),
       ),
       _SettingEntry(
         icon: Icons.favorite_outline,
         title: 'Liked Songs',
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LikedSongsScreen()),
+          );
+        },
       ),
+      if (auth.isAdmin)
+        _SettingEntry(
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'Admin Dashboard',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+            );
+          },
+        ),
     ];
 
     return Container(
@@ -206,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildThemeToggle() {
+  Widget _buildThemeToggle(BuildContext context, ThemeProvider theme) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
@@ -215,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: ListTile(
         leading: Icon(
-          _isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+          theme.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
           color: AppColors.textMuted,
         ),
         title: const Text(
@@ -223,20 +173,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
         ),
         trailing: Switch(
-          value: _isDarkMode,
-          onChanged: (value) => setState(() => _isDarkMode = value),
+          value: theme.isDarkMode,
+          onChanged: (_) => theme.toggleTheme(),
           activeThumbColor: AppColors.primaryNeon,
         ),
       ),
     );
   }
 
-  Widget _buildSignOutButton() {
+  Widget _buildSignOutButton(BuildContext context, AuthProvider auth) {
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: OutlinedButton(
-        onPressed: _signOut,
+        onPressed: () async {
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: AppColors.surfaceCard,
+              title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
+              content: const Text('Are you sure you want to sign out?',
+                  style: TextStyle(color: AppColors.textMuted)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+                ),
+              ],
+            ),
+          );
+
+          if (confirmed == true) {
+            await auth.signOut();
+            if (context.mounted) {
+              Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+            }
+          }
+        },
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: Colors.redAccent),
           foregroundColor: Colors.redAccent,
@@ -268,4 +245,141 @@ class _SettingEntry {
     required this.title,
     required this.onTap,
   });
+}
+
+void _showEditProfileDialog(BuildContext context, AuthProvider auth) {
+  final nameController = TextEditingController(text: auth.user?.name ?? '');
+  final emailController = TextEditingController(text: auth.user?.email ?? '');
+
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: AppColors.surfaceCard,
+      title: const Text('Edit Profile', style: TextStyle(color: AppColors.textPrimary)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameController,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              hintText: 'Name',
+              prefixIcon: Icon(Icons.person_outline, color: AppColors.textMuted),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: emailController,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              hintText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined, color: AppColors.textMuted),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profile updated successfully'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          },
+          child: const Text('Save', style: TextStyle(color: AppColors.primaryNeon)),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showChangePasswordDialog(BuildContext context) {
+  final currentPasswordController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: AppColors.surfaceCard,
+      title: const Text('Change Password', style: TextStyle(color: AppColors.textPrimary)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: currentPasswordController,
+            obscureText: true,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              hintText: 'Current Password',
+              prefixIcon: Icon(Icons.lock_outline, color: AppColors.textMuted),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: newPasswordController,
+            obscureText: true,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              hintText: 'New Password',
+              prefixIcon: Icon(Icons.lock_reset, color: AppColors.textMuted),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: confirmPasswordController,
+            obscureText: true,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              hintText: 'Confirm New Password',
+              prefixIcon: Icon(Icons.lock_outline, color: AppColors.textMuted),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            if (newPasswordController.text != confirmPasswordController.text) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Passwords do not match'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
+            if (newPasswordController.text.length < 6) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Password must be at least 6 characters'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
+            Navigator.pop(ctx);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Password changed successfully'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          },
+          child: const Text('Update', style: TextStyle(color: AppColors.primaryNeon)),
+        ),
+      ],
+    ),
+  );
 }

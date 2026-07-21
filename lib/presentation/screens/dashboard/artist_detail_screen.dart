@@ -1,35 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/artist_model.dart';
 import '../../../data/models/track_model.dart';
 import '../../../data/models/album_model.dart';
+import '../../../providers/audio_provider.dart';
+import '../../../providers/track_provider.dart';
 import '../now_playing/player_screen.dart';
 
-class ArtistDetailScreen extends StatelessWidget {
+class ArtistDetailScreen extends StatefulWidget {
   final ArtistModel? artist;
 
   const ArtistDetailScreen({super.key, this.artist});
 
-  static final _dummyArtist = ArtistModel(
-    artistId: 1,
-    name: 'Aurora Beats',
-  );
+  @override
+  State<ArtistDetailScreen> createState() => _ArtistDetailScreenState();
+}
 
-  static final _dummyTracks = [
-    TrackModel(trackId: 1, albumId: 1, genresId: 1, title: 'Midnight Pulse', audioUrl: '', duration: 234, streamCount: 1500000),
-    TrackModel(trackId: 2, albumId: 1, genresId: 1, title: 'Distant Frequencies', audioUrl: '', duration: 312, streamCount: 620000),
-    TrackModel(trackId: 3, albumId: 1, genresId: 1, title: 'Electric Pulse', audioUrl: '', duration: 256, streamCount: 410000),
-    TrackModel(trackId: 4, albumId: 1, genresId: 1, title: 'Dreamcatcher', audioUrl: '', duration: 280, streamCount: 350000),
-  ];
+class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
+  List<TrackModel> _tracks = [];
+  List<AlbumModel> _albums = [];
+  bool _isLoading = true;
 
-  static final _dummyAlbums = [
-    AlbumModel(albumId: 1, title: 'Electric Dreams', releaseDate: DateTime(2025)),
-    AlbumModel(albumId: 5, title: 'Neon Horizons', releaseDate: DateTime(2024)),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    if (widget.artist == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+    final tp = context.read<TrackProvider>();
+    final tracks = await tp.fetchTracksByArtist(widget.artist!.artistId);
+    final albums = await tp.fetchAlbumsByArtist(widget.artist!.artistId);
+    if (mounted) {
+      setState(() {
+        _tracks = tracks;
+        _albums = albums;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final displayArtist = artist ?? _dummyArtist;
+    final artist = widget.artist;
+
+    if (artist == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Artist')),
+        body: const Center(child: Text('No artist selected', style: TextStyle(color: AppColors.textMuted))),
+      );
+    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -72,11 +97,15 @@ class ArtistDetailScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.person_rounded,
-                          size: 72,
-                          color: AppColors.primaryNeon,
-                        ),
+                        child: artist.profilePic != null && artist.profilePic!.isNotEmpty
+                            ? ClipOval(
+                                child: Image.network(
+                                  artist.profilePic!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, size: 72, color: AppColors.primaryNeon),
+                                ),
+                              )
+                            : const Icon(Icons.person_rounded, size: 72, color: AppColors.primaryNeon),
                       ),
                     ],
                   ),
@@ -91,17 +120,16 @@ class ArtistDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    displayArtist.name,
+                    artist.name,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Grammy-nominated electronic producer known for blending ambient textures with driving beats. Active since 2018 with over 2M monthly listeners worldwide.',
+                    '${_tracks.length} tracks · ${_albums.length} albums',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppColors.textMuted,
-                      height: 1.5,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -109,7 +137,9 @@ class ArtistDetailScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {},
+                          onPressed: _tracks.isNotEmpty
+                              ? () => context.read<AudioProvider>().playTrackFromQueue(_tracks, 0)
+                              : null,
                           icon: const Icon(Icons.play_arrow_rounded, color: Colors.black),
                           label: const Text('Play', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
@@ -140,101 +170,126 @@ class ArtistDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final track = _dummyTracks[index];
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-                  leading: Text(
-                    '${index + 1}',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
-                  ),
-                  title: Text(
-                    track.title,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                  ),
-                  subtitle: Text(
-                    '${track.streamCount ~/ 1000}K streams',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.more_vert, color: AppColors.textMuted, size: 20),
-                    onPressed: () {},
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => PlayerScreen(track: track)),
-                    );
-                  },
-                );
-              },
-              childCount: _dummyTracks.length,
+          if (_isLoading)
+            const SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(48),
+                  child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                ),
+              ),
+            )
+          else if (_tracks.isEmpty)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(48),
+                child: Center(
+                  child: Text('No tracks by this artist', style: TextStyle(color: AppColors.textMuted)),
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final track = _tracks[index];
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                    leading: Text(
+                      '${index + 1}',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                    ),
+                    title: Text(
+                      track.title,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
+                    subtitle: Text(
+                      '${track.streamCount ~/ 1000}K streams',
+                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.more_vert, color: AppColors.textMuted, size: 20),
+                      onPressed: () {},
+                    ),
+                    onTap: () {
+                      context.read<AudioProvider>().playTrackFromQueue(_tracks, index);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => PlayerScreen(track: track)),
+                      );
+                    },
+                  );
+                },
+                childCount: _tracks.length,
+              ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-              child: Text(
-                'Albums',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+          if (_albums.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                child: Text(
+                  'Albums',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.85,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final album = _dummyAlbums[index];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceCard,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.album_rounded,
-                            size: 40,
-                            color: AppColors.textMuted,
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.85,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final album = _albums[index];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceCard,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: album.coverPng != null && album.coverPng!.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(album.coverPng!, fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.album_rounded, size: 40, color: AppColors.textMuted),
+                                    ),
+                                  )
+                                : const Icon(Icons.album_rounded, size: 40, color: AppColors.textMuted),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        album.title,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                        const SizedBox(height: 6),
+                        Text(
+                          album.title,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        '${album.releaseDate ?? "Unknown"}',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
-                      ),
-                    ],
-                  );
-                },
-                childCount: _dummyAlbums.length,
+                        Text(
+                          '${album.releaseDate?.year ?? "Unknown"}',
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                        ),
+                      ],
+                    );
+                  },
+                  childCount: _albums.length,
+                ),
               ),
             ),
-          ),
+          ],
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
