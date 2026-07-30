@@ -34,33 +34,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _buildBody(),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: MiniAudioPlayer(),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        color: AppColors.surfaceDark,
-        child: SafeArea(
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
-            backgroundColor: AppColors.surfaceDark,
-            selectedItemColor: AppColors.primaryNeon,
-            unselectedItemColor: AppColors.textMuted,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Search'),
-              BottomNavigationBarItem(icon: Icon(Icons.library_music_rounded), label: 'Library'),
-              BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
-            ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            _buildBody(),
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: MiniAudioPlayer(),
+            ),
+          ],
+        ),
+        bottomNavigationBar: Container(
+          color: AppColors.surfaceDark,
+          child: SafeArea(
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+              backgroundColor: AppColors.surfaceDark,
+              selectedItemColor: AppColors.primaryNeon,
+              unselectedItemColor: AppColors.textMuted,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
+                BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Search'),
+                BottomNavigationBarItem(icon: Icon(Icons.library_music_rounded), label: 'Library'),
+                BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+              ],
+            ),
           ),
         ),
       ),

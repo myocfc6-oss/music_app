@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/album_model.dart';
+import '../../../data/models/artist_model.dart';
 import '../../../providers/track_provider.dart';
 import '../../global_widgets/custom_textfield.dart';
 
@@ -27,24 +28,36 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
     final titleCtrl = TextEditingController();
     final imageCtrl = TextEditingController();
     DateTime? selectedDate;
+    int? selectedArtistId;
+
+    final tp = context.read<TrackProvider>();
+    if (tp.artists.isNotEmpty) {
+      selectedArtistId = tp.artists.first.artistId;
+    }
 
     showDialog(
       context: context,
-      builder: (ctx) => _AlbumDialog(
-        dialogTitle: 'Add Album',
-        titleController: titleCtrl,
-        selectedDate: selectedDate,
-        imageController: imageCtrl,
-        confirmLabel: 'Add',
-        onDateChanged: (date) => selectedDate = date,
-        onConfirm: () {
-          if (titleCtrl.text.trim().isEmpty) return;
-          context.read<TrackProvider>().createAlbum(
-            titleCtrl.text.trim(),
-            releaseDate: selectedDate,
-            coverPng: imageCtrl.text.trim().isEmpty ? null : imageCtrl.text.trim(),
-          );
-        },
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => _AlbumDialog(
+          dialogTitle: 'Add Album',
+          titleController: titleCtrl,
+          selectedDate: selectedDate,
+          imageController: imageCtrl,
+          artists: tp.artists,
+          selectedArtistId: selectedArtistId,
+          confirmLabel: 'Add',
+          onDateChanged: (date) => selectedDate = date,
+          onArtistChanged: (id) => setDialogState(() => selectedArtistId = id),
+          onConfirm: () {
+            if (titleCtrl.text.trim().isEmpty) return;
+            context.read<TrackProvider>().createAlbum(
+              titleCtrl.text.trim(),
+              artistId: selectedArtistId,
+              releaseDate: selectedDate,
+              coverPng: imageCtrl.text.trim().isEmpty ? null : imageCtrl.text.trim(),
+            );
+          },
+        ),
       ),
     );
   }
@@ -53,6 +66,7 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
     final titleCtrl = TextEditingController(text: album.title);
     final imageCtrl = TextEditingController(text: album.coverPng ?? '');
     DateTime? selectedDate = album.releaseDate;
+    final tp = context.read<TrackProvider>();
 
     showDialog(
       context: context,
@@ -61,6 +75,7 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
         titleController: titleCtrl,
         selectedDate: selectedDate,
         imageController: imageCtrl,
+        artists: tp.artists,
         confirmLabel: 'Save',
         onDateChanged: (date) => selectedDate = date,
         onConfirm: () {
@@ -196,8 +211,12 @@ class _AlbumCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(album.title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (album.artistName != null && album.artistName!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(album.artistName!, style: const TextStyle(color: AppColors.primaryNeon, fontSize: 12, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                ],
                 const SizedBox(height: 2),
-                Text('${album.releaseDate?.year ?? "—"}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                Text('${album.releaseDate?.year ?? "—"}', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
               ],
             ),
           ),
@@ -239,8 +258,11 @@ class _AlbumDialog extends StatefulWidget {
   final TextEditingController titleController;
   final DateTime? selectedDate;
   final TextEditingController imageController;
+  final List<ArtistModel> artists;
+  final int? selectedArtistId;
   final String confirmLabel;
   final ValueChanged<DateTime?> onDateChanged;
+  final ValueChanged<int?>? onArtistChanged;
   final VoidCallback onConfirm;
 
   const _AlbumDialog({
@@ -248,8 +270,11 @@ class _AlbumDialog extends StatefulWidget {
     required this.titleController,
     this.selectedDate,
     required this.imageController,
+    this.artists = const [],
+    this.selectedArtistId,
     required this.confirmLabel,
     required this.onDateChanged,
+    this.onArtistChanged,
     required this.onConfirm,
   });
 
@@ -259,11 +284,13 @@ class _AlbumDialog extends StatefulWidget {
 
 class _AlbumDialogState extends State<_AlbumDialog> {
   late DateTime? _selectedDate;
+  late int? _selectedArtistId;
 
   @override
   void initState() {
     super.initState();
     _selectedDate = widget.selectedDate;
+    _selectedArtistId = widget.selectedArtistId;
   }
 
   Future<void> _pickDate() async {
@@ -305,8 +332,36 @@ class _AlbumDialogState extends State<_AlbumDialog> {
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CustomTextField(hintText: 'Album Title', controller: widget.titleController),
+            if (widget.artists.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('Artist', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.borderDark),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _selectedArtistId,
+                    isExpanded: true,
+                    dropdownColor: AppColors.surfaceCard,
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    hint: const Text('Select Artist', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+                    items: widget.artists.map((a) => DropdownMenuItem(value: a.artistId, child: Text(a.name))).toList(),
+                    onChanged: (id) {
+                      setState(() => _selectedArtistId = id);
+                      if (widget.onArtistChanged != null) widget.onArtistChanged!(id);
+                    },
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             GestureDetector(
               onTap: _pickDate,
@@ -360,3 +415,4 @@ class _AlbumDialogState extends State<_AlbumDialog> {
     );
   }
 }
+

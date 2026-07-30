@@ -14,20 +14,23 @@ class AdminDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        automaticallyImplyLeading: false,
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= _breakpoint;
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Admin Dashboard'),
+          automaticallyImplyLeading: false,
+        ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= _breakpoint;
 
-          if (isWide) {
-            return _buildWideLayout(context, constraints.maxWidth);
-          }
-          return _buildNarrowLayout(context);
-        },
+            if (isWide) {
+              return _buildWideLayout(context, constraints.maxWidth);
+            }
+            return _buildNarrowLayout(context);
+          },
+        ),
       ),
     );
   }

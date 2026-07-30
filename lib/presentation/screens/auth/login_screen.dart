@@ -62,14 +62,16 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (user.role == 'admin') {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+          (route) => false,
         );
       } else {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
         );
       }
     } on Exception catch (e) {
