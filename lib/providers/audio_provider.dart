@@ -144,16 +144,37 @@ class AudioProvider extends ChangeNotifier {
     await _loadAndPlay(_queue[index]);
   }
 
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
+  String formatAudioUrl(String url) {
+    var formatted = url.trim();
+    if (formatted.contains('drive.google.com/file/d/')) {
+      final regExp = RegExp(r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)');
+      final match = regExp.firstMatch(formatted);
+      if (match != null && match.groupCount >= 1) {
+        final fileId = match.group(1);
+        return 'https://docs.google.com/uc?export=download&id=$fileId';
+      }
+    }
+    return formatted;
+  }
+
   Future<void> _loadAndPlay(TrackModel track) async {
+    _errorMessage = null;
     if (track.audioUrl.isEmpty) {
+      _errorMessage = 'No audio URL provided for this track.';
       notifyListeners();
       return;
     }
 
     try {
-      await _player.setUrl(track.audioUrl);
+      final formattedUrl = formatAudioUrl(track.audioUrl);
+      await _player.stop();
+      await _player.setUrl(formattedUrl);
       await _player.play();
     } catch (e) {
+      _errorMessage = 'Playback error: $e';
       debugPrint('Failed to play audio: $e');
     }
     notifyListeners();

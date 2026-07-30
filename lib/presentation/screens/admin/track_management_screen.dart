@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/models/album_model.dart';
+import '../../../data/models/artist_model.dart';
+import '../../../data/models/genre_model.dart';
 import '../../../data/models/track_model.dart';
 import '../../../providers/track_provider.dart';
 import '../../global_widgets/custom_textfield.dart';
@@ -27,47 +30,81 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
 
   void _showAddDialog() {
     final titleCtrl = TextEditingController();
+    final audioUrlCtrl = TextEditingController();
     final durationCtrl = TextEditingController();
+    int? selectedArtistId;
+    int? selectedAlbumId;
+    int? selectedGenreId;
+
+    final tp = context.read<TrackProvider>();
+    if (tp.artists.isNotEmpty) selectedArtistId = tp.artists.first.artistId;
+    if (tp.albums.isNotEmpty) selectedAlbumId = tp.albums.first.albumId;
+    if (tp.genres.isNotEmpty) selectedGenreId = tp.genres.first.genresId;
 
     showDialog(
       context: context,
-      builder: (ctx) => _TrackDialog(
-        dialogTitle: 'Add Track',
-        titleController: titleCtrl,
-        durationController: durationCtrl,
-        confirmLabel: 'Add',
-        onConfirm: () {
-          if (titleCtrl.text.trim().isEmpty) return;
-          final durSec = _parseDuration(durationCtrl.text);
-          final tp = context.read<TrackProvider>();
-          if (tp.artists.isEmpty || tp.albums.isEmpty || tp.genres.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please add artists, albums, and genres first')),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => _TrackDialog(
+          dialogTitle: 'Add Track',
+          titleController: titleCtrl,
+          audioUrlController: audioUrlCtrl,
+          durationController: durationCtrl,
+          artists: tp.artists,
+          albums: tp.albums,
+          genres: tp.genres,
+          selectedArtistId: selectedArtistId,
+          selectedAlbumId: selectedAlbumId,
+          selectedGenreId: selectedGenreId,
+          onArtistChanged: (id) => setDialogState(() => selectedArtistId = id),
+          onAlbumChanged: (id) => setDialogState(() => selectedAlbumId = id),
+          onGenreChanged: (id) => setDialogState(() => selectedGenreId = id),
+          confirmLabel: 'Add',
+          onConfirm: () {
+            if (titleCtrl.text.trim().isEmpty) return;
+            final durSec = _parseDuration(durationCtrl.text);
+            if (tp.artists.isEmpty || tp.albums.isEmpty || tp.genres.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please add artists, albums, and genres first')),
+              );
+              return;
+            }
+            if (selectedArtistId == null || selectedAlbumId == null || selectedGenreId == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please select an artist, album, and genre')),
+              );
+              return;
+            }
+            tp.createTrack(
+              title: titleCtrl.text.trim(),
+              audioUrl: audioUrlCtrl.text.trim(),
+              artistId: selectedArtistId!,
+              albumId: selectedAlbumId!,
+              genresId: selectedGenreId!,
+              duration: durSec,
             );
-            return;
-          }
-          tp.createTrack(
-            title: titleCtrl.text.trim(),
-            artistId: tp.artists.first.artistId,
-            albumId: tp.albums.first.albumId,
-            genresId: tp.genres.first.genresId,
-            duration: durSec,
-          );
-        },
+          },
+        ),
       ),
     );
   }
 
   void _showEditDialog(TrackModel track) {
     final titleCtrl = TextEditingController(text: track.title);
+    final audioUrlCtrl = TextEditingController(text: track.audioUrl);
     final durationCtrl = TextEditingController(text: track.durationFormatted);
+    final tp = context.read<TrackProvider>();
 
     showDialog(
       context: context,
       builder: (ctx) => _TrackDialog(
         dialogTitle: 'Edit Track',
         titleController: titleCtrl,
+        audioUrlController: audioUrlCtrl,
         durationController: durationCtrl,
+        artists: tp.artists,
+        albums: tp.albums,
+        genres: tp.genres,
+        isEdit: true,
         confirmLabel: 'Save',
         onConfirm: () {
           if (titleCtrl.text.trim().isEmpty) return;
@@ -75,6 +112,7 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
           context.read<TrackProvider>().updateTrack(
             track.trackId,
             title: titleCtrl.text.trim(),
+            audioUrl: audioUrlCtrl.text.trim(),
             duration: durSec,
           );
         },
@@ -168,7 +206,7 @@ class _TrackTile extends StatelessWidget {
         border: Border.all(color: AppColors.borderDark),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         leading: Container(
           width: 48, height: 48,
           decoration: BoxDecoration(color: AppColors.surfaceElevated, borderRadius: BorderRadius.circular(8)),
@@ -179,10 +217,23 @@ class _TrackTile extends StatelessWidget {
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
           maxLines: 1, overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(
-          'Album ${track.albumId}',
-          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-          maxLines: 1, overflow: TextOverflow.ellipsis,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${track.artistName ?? 'Artist'} • ${track.albumTitle ?? 'Album ${track.albumId}'}',
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+              maxLines: 1, overflow: TextOverflow.ellipsis,
+            ),
+            if (track.audioUrl.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                'URL: ${track.audioUrl}',
+                style: const TextStyle(color: AppColors.primaryNeon, fontSize: 11),
+                maxLines: 1, overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -222,14 +273,36 @@ class _ActionChip extends StatelessWidget {
 class _TrackDialog extends StatelessWidget {
   final String dialogTitle;
   final TextEditingController titleController;
+  final TextEditingController audioUrlController;
   final TextEditingController durationController;
+  final List<ArtistModel> artists;
+  final List<AlbumModel> albums;
+  final List<GenreModel> genres;
+  final int? selectedArtistId;
+  final int? selectedAlbumId;
+  final int? selectedGenreId;
+  final ValueChanged<int?>? onArtistChanged;
+  final ValueChanged<int?>? onAlbumChanged;
+  final ValueChanged<int?>? onGenreChanged;
+  final bool isEdit;
   final String confirmLabel;
   final VoidCallback onConfirm;
 
   const _TrackDialog({
     required this.dialogTitle,
     required this.titleController,
+    required this.audioUrlController,
     required this.durationController,
+    this.artists = const [],
+    this.albums = const [],
+    this.genres = const [],
+    this.selectedArtistId,
+    this.selectedAlbumId,
+    this.selectedGenreId,
+    this.onArtistChanged,
+    this.onAlbumChanged,
+    this.onGenreChanged,
+    this.isEdit = false,
     required this.confirmLabel,
     required this.onConfirm,
   });
@@ -243,10 +316,42 @@ class _TrackDialog extends StatelessWidget {
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CustomTextField(hintText: 'Track Title', controller: titleController),
             const SizedBox(height: 12),
+            CustomTextField(hintText: 'Track Audio URL (http://... or https://...)', controller: audioUrlController),
+            const SizedBox(height: 12),
             CustomTextField(hintText: 'Duration (e.g. 3:45)', controller: durationController),
+            if (!isEdit) ...[
+              const SizedBox(height: 16),
+              const Text('Artist', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              _buildDropdown<int>(
+                value: selectedArtistId,
+                items: artists.map((a) => DropdownMenuItem(value: a.artistId, child: Text(a.name))).toList(),
+                onChanged: onArtistChanged,
+                hint: 'Select Artist',
+              ),
+              const SizedBox(height: 12),
+              const Text('Album', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              _buildDropdown<int>(
+                value: selectedAlbumId,
+                items: albums.map((a) => DropdownMenuItem(value: a.albumId, child: Text(a.title))).toList(),
+                onChanged: onAlbumChanged,
+                hint: 'Select Album',
+              ),
+              const SizedBox(height: 12),
+              const Text('Genre', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              _buildDropdown<int>(
+                value: selectedGenreId,
+                items: genres.map((g) => DropdownMenuItem(value: g.genresId, child: Text(g.name))).toList(),
+                onChanged: onGenreChanged,
+                hint: 'Select Genre',
+              ),
+            ],
           ],
         ),
       ),
@@ -262,4 +367,32 @@ class _TrackDialog extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildDropdown<T>({
+    required T? value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?>? onChanged,
+    required String hint,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceElevated,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderDark),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          dropdownColor: AppColors.surfaceCard,
+          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+          hint: Text(hint, style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+          items: items,
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
 }
+

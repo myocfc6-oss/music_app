@@ -32,10 +32,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // ──────────────────────────────────────────────
-  //  Wide layout: side-by-side split
-  // ──────────────────────────────────────────────
-
   Widget _buildWideLayout(BuildContext context, double width) {
     final panelGap = width >= 1200 ? 24.0 : 16.0;
     final manageFlex = width >= 1200 ? 3 : 3;
@@ -60,10 +56,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // ──────────────────────────────────────────────
-  //  Narrow layout: single-column scroll
-  // ──────────────────────────────────────────────
-
   Widget _buildNarrowLayout(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -84,10 +76,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // ──────────────────────────────────────────────
-  //  Analytics panel (right side on wide layout)
-  // ──────────────────────────────────────────────
-
   Widget _buildAnalyticsPanel() {
     return SingleChildScrollView(
       child: Column(
@@ -103,10 +91,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  // ──────────────────────────────────────────────
-  //  Management panel (left sidebar on wide layout)
-  // ──────────────────────────────────────────────
-
   Widget _buildManagementPanel(BuildContext context) {
     return SingleChildScrollView(
       child: Column(
@@ -119,10 +103,6 @@ class AdminDashboardScreen extends StatelessWidget {
       ),
     );
   }
-
-  // ──────────────────────────────────────────────
-  //  Shared helpers
-  // ──────────────────────────────────────────────
 
   static Widget _sectionHeader(String text) {
     return Text(
