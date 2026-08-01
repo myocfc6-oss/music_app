@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/user_model.dart';
@@ -7,10 +8,13 @@ class AuthProvider extends ChangeNotifier {
 
   UserModel? _user;
   bool _isLoading = false;
+  bool _isInitialized = false;
   String? _error;
+  StreamSubscription<AuthState>? _authSubscription;
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
   bool get isAuthenticated => _user != null;
   bool get isAdmin => _user?.role == 'admin';
   String? get error => _error;
@@ -18,10 +22,29 @@ class AuthProvider extends ChangeNotifier {
   User? get currentUser => _supabase.auth.currentUser;
 
   Future<void> init() async {
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) async {
+      final session = data.session;
+      if (session != null && _user == null) {
+        await _fetchUserProfile();
+      } else if (session == null && _user != null) {
+        _user = null;
+        notifyListeners();
+      }
+    });
+
     final session = _supabase.auth.currentSession;
     if (session != null) {
       await _fetchUserProfile();
     }
+
+    _isInitialized = true;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> signUp({

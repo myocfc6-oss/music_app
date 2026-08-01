@@ -8,6 +8,7 @@ import 'providers/audio_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/track_provider.dart';
 import 'presentation/screens/welcome/welcome_screen.dart';
+import 'presentation/screens/auth/auth_gate.dart';
 import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/auth/register_screen.dart';
 import 'presentation/screens/dashboard/home_screen.dart';
@@ -54,7 +55,8 @@ class SonusApp extends StatelessWidget {
             themeMode: themeProvider.themeMode,
             initialRoute: '/',
             routes: {
-              '/': (context) => const WelcomeScreen(),
+              '/': (context) => const AuthGate(),
+              '/welcome': (context) => const WelcomeScreen(),
               '/login': (context) => const LoginScreen(),
               '/register': (context) => const RegisterScreen(),
               '/home': (context) => const HomeScreen(),
