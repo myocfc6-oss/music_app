@@ -102,7 +102,22 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverAppBar(
               floating: true,
               automaticallyImplyLeading: false,
-              title: const Text('Sonus'),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 32,
+                      height: 32,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('Sonus'),
+                ],
+              ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.notifications_outlined),

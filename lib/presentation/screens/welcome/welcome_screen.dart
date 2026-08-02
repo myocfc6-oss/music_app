@@ -16,16 +16,24 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 3),
               Container(
-                width: 80,
-                height: 80,
+                width: 90,
+                height: 90,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryNeon,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryNeon.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
-                child: const Icon(
-                  Icons.music_note_rounded,
-                  size: 44,
-                  color: Colors.black,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),

@@ -21,16 +21,23 @@ class AuthGate extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 76,
-                    height: 76,
+                    width: 80,
+                    height: 80,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryNeon,
                       borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryNeon.withValues(alpha: 0.3),
+                          blurRadius: 16,
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.music_note_rounded,
-                      size: 42,
-                      color: Colors.black,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
