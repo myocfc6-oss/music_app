@@ -48,7 +48,7 @@ class SonusApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
-            title: 'Sonus Music',
+            title: 'Sonus',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.darkTheme,
             darkTheme: AppTheme.darkTheme,
