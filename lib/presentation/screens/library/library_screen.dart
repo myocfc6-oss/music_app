@@ -179,7 +179,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
       ),
       subtitle: Text(
-        '0 tracks',
+        '${playlist.trackCount} ${playlist.trackCount == 1 ? 'track' : 'tracks'}',
         style: TextStyle(
           color: AppColors.textMuted.withValues(alpha: 0.7),
           fontSize: 12,

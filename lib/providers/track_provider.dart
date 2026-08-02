@@ -162,7 +162,7 @@ class TrackProvider extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('playlist_tbl')
-          .select()
+          .select('*, playlist_track_tbl(count)')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
@@ -205,6 +205,20 @@ class TrackProvider extends ChangeNotifier {
         'playlist_id': playlistId,
         'track_id': trackId,
       });
+
+      final idx = _playlists.indexWhere((p) => p.playlistId == playlistId);
+      if (idx != -1) {
+        final p = _playlists[idx];
+        _playlists[idx] = PlaylistModel(
+          playlistId: p.playlistId,
+          userId: p.userId,
+          title: p.title,
+          coverPng: p.coverPng,
+          createdAt: p.createdAt,
+          trackCount: p.trackCount + 1,
+        );
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint('Failed to add track to playlist: $e');
     }
@@ -217,6 +231,20 @@ class TrackProvider extends ChangeNotifier {
           .delete()
           .eq('playlist_id', playlistId)
           .eq('track_id', trackId);
+
+      final idx = _playlists.indexWhere((p) => p.playlistId == playlistId);
+      if (idx != -1) {
+        final p = _playlists[idx];
+        _playlists[idx] = PlaylistModel(
+          playlistId: p.playlistId,
+          userId: p.userId,
+          title: p.title,
+          coverPng: p.coverPng,
+          createdAt: p.createdAt,
+          trackCount: (p.trackCount - 1).clamp(0, 999999),
+        );
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint('Failed to remove track from playlist: $e');
     }
