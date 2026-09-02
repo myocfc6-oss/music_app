@@ -6,6 +6,7 @@ import '../../../data/models/album_model.dart';
 import '../../../providers/audio_provider.dart';
 import '../../../providers/track_provider.dart';
 import '../../global_widgets/mini_audio_player.dart';
+import '../../global_widgets/track_art_widget.dart';
 import '../search/search_screen.dart';
 import '../library/library_screen.dart';
 import '../now_playing/player_screen.dart';
@@ -219,14 +220,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTrackTile(TrackModel track, List<TrackModel> allTracks, int index) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(Icons.music_note_rounded, color: AppColors.primaryNeon),
+      leading: TrackArtWidget(
+        imageUrl: track.coverPng,
+        size: 48,
+        borderRadius: 8,
       ),
       title: Text(
         track.title,
@@ -278,17 +275,13 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Container(
+            child: TrackArtWidget(
+              imageUrl: album.coverPng,
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceCard,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.album_rounded,
-                size: 48,
-                color: AppColors.textMuted,
-              ),
+              height: double.infinity,
+              borderRadius: 8,
+              placeholderIcon: Icons.album_rounded,
+              iconSize: 48,
             ),
           ),
           const SizedBox(height: 8),

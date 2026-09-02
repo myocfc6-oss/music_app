@@ -102,7 +102,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                                 child: Image.network(
                                   artist.profilePic!,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.person_rounded, size: 72, color: AppColors.primaryNeon),
+                                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.person_rounded, size: 72, color: AppColors.primaryNeon),
                                 ),
                               )
                             : const Icon(Icons.person_rounded, size: 72, color: AppColors.primaryNeon),
@@ -261,7 +261,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen> {
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.network(album.coverPng!, fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.album_rounded, size: 40, color: AppColors.textMuted),
+                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.album_rounded, size: 40, color: AppColors.textMuted),
                                     ),
                                   )
                                 : const Icon(Icons.album_rounded, size: 40, color: AppColors.textMuted),

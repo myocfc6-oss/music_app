@@ -10,6 +10,7 @@ class TrackModel {
   final String? artistName;
   final String? albumTitle;
   final String? genreName;
+  final String? coverPng;
 
   TrackModel({
     required this.trackId,
@@ -23,9 +24,16 @@ class TrackModel {
     this.artistName,
     this.albumTitle,
     this.genreName,
+    this.coverPng,
   });
 
-  factory TrackModel.fromMap(Map<String, dynamic> map, {String? artistName, String? albumTitle, String? genreName}) {
+  factory TrackModel.fromMap(
+    Map<String, dynamic> map, {
+    String? artistName,
+    String? albumTitle,
+    String? genreName,
+    String? coverPng,
+  }) {
     return TrackModel(
       trackId: map['track_id'] is int
           ? map['track_id']
@@ -50,6 +58,7 @@ class TrackModel {
       artistName: artistName,
       albumTitle: albumTitle,
       genreName: genreName,
+      coverPng: coverPng ?? map['cover_png']?.toString() ?? map['cover_url']?.toString(),
     );
   }
 
@@ -62,8 +71,39 @@ class TrackModel {
       'audio_url': audioUrl,
       'duration': duration,
       'stream_count': streamCount,
+      'cover_png': coverPng,
       'created_at': createdAt?.toIso8601String(),
     };
+  }
+
+  TrackModel copyWith({
+    int? trackId,
+    int? albumId,
+    int? genresId,
+    String? title,
+    String? audioUrl,
+    int? duration,
+    int? streamCount,
+    DateTime? createdAt,
+    String? artistName,
+    String? albumTitle,
+    String? genreName,
+    String? coverPng,
+  }) {
+    return TrackModel(
+      trackId: trackId ?? this.trackId,
+      albumId: albumId ?? this.albumId,
+      genresId: genresId ?? this.genresId,
+      title: title ?? this.title,
+      audioUrl: audioUrl ?? this.audioUrl,
+      duration: duration ?? this.duration,
+      streamCount: streamCount ?? this.streamCount,
+      createdAt: createdAt ?? this.createdAt,
+      artistName: artistName ?? this.artistName,
+      albumTitle: albumTitle ?? this.albumTitle,
+      genreName: genreName ?? this.genreName,
+      coverPng: coverPng ?? this.coverPng,
+    );
   }
 
   String get durationFormatted {

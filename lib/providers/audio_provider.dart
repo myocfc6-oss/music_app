@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/track_model.dart';
 
 class AudioProvider extends ChangeNotifier {
@@ -12,6 +13,8 @@ class AudioProvider extends ChangeNotifier {
   int _currentIndex = -1;
   bool _isShuffleOn = false;
   AppRepeatMode _repeatMode = AppRepeatMode.off;
+  int? _countedTrackId;
+  void Function(int trackId)? onStreamIncremented;
 
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration?>? _durationSub;
@@ -75,6 +78,7 @@ class AudioProvider extends ChangeNotifier {
 
   void _initStreams() {
     _positionSub = _player.positionStream.listen((position) {
+      _checkStreamCount(position);
       notifyListeners();
     });
 
@@ -110,7 +114,37 @@ class AudioProvider extends ChangeNotifier {
     });
   }
 
+  void _checkStreamCount(Duration position) {
+    if (_currentTrack == null) return;
+    final trackId = _currentTrack!.trackId;
+    if (_countedTrackId == trackId) return;
+
+    final dur = _player.duration;
+    final threshold = (dur != null && dur.inSeconds < 15 && dur.inSeconds > 0)
+        ? (dur.inSeconds ~/ 2)
+        : 15;
+
+    if (position.inSeconds >= threshold) {
+      _countedTrackId = trackId;
+      _incrementStreamCount(trackId);
+    }
+  }
+
+  Future<void> _incrementStreamCount(int trackId) async {
+    try {
+      await Supabase.instance.client.rpc('increment_stream_count', params: {'tid': trackId});
+      onStreamIncremented?.call(trackId);
+    } catch (e) {
+      debugPrint('Stream count increment error: $e');
+    }
+  }
+
   void _onTrackComplete() {
+    if (_currentTrack != null && _countedTrackId != _currentTrack!.trackId) {
+      _countedTrackId = _currentTrack!.trackId;
+      _incrementStreamCount(_currentTrack!.trackId);
+    }
+
     if (_repeatMode == AppRepeatMode.one) {
       _player.seek(Duration.zero);
       _player.play();
@@ -162,6 +196,9 @@ class AudioProvider extends ChangeNotifier {
 
   Future<void> _loadAndPlay(TrackModel track) async {
     _errorMessage = null;
+    if (_currentTrack?.trackId != _countedTrackId) {
+      _countedTrackId = null;
+    }
     if (track.audioUrl.isEmpty) {
       _errorMessage = 'No audio URL provided for this track.';
       notifyListeners();

@@ -5,6 +5,7 @@ import '../../../data/models/track_model.dart';
 import '../../../providers/audio_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/track_provider.dart';
+import '../../global_widgets/track_art_widget.dart';
 import '../now_playing/player_screen.dart';
 
 class LikedSongsScreen extends StatefulWidget {
@@ -94,14 +95,10 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
   ) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(Icons.music_note_rounded, color: AppColors.primaryNeon),
+      leading: TrackArtWidget(
+        imageUrl: track.coverPng,
+        size: 48,
+        borderRadius: 8,
       ),
       title: Text(
         track.title,

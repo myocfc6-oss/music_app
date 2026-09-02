@@ -37,23 +37,28 @@ class TrackProvider extends ChangeNotifier {
   bool get isLoadingLiked => _isLoadingLiked;
 
   // ─── Helper: Parse track from Supabase row with joined data ───
-  TrackModel _parseTrack(Map<String, dynamic> map) {
+  TrackModel _parseTrack(Map<String, dynamic> map, {String? defaultCover}) {
     final trackArtistRelations = map['track_artist_tbl'] as List?;
     String artistName = '';
     if (trackArtistRelations != null && trackArtistRelations.isNotEmpty) {
       artistName = trackArtistRelations[0]['artist_tbl']?['name'] ?? '';
     }
+    final cover = map['cover_png'] ??
+        map['cover_url'] ??
+        map['album_tbl']?['cover_png'] ??
+        defaultCover;
     return TrackModel(
-      trackId: map['track_id'],
-      albumId: map['album_id'],
-      genresId: map['genres_id'],
-      title: map['title'] ?? '',
-      audioUrl: map['audio_url'] ?? '',
-      duration: map['duration'] ?? 0,
-      streamCount: map['stream_count'] ?? 0,
+      trackId: map['track_id'] is int ? map['track_id'] : int.parse(map['track_id'].toString()),
+      albumId: map['album_id'] is int ? map['album_id'] : int.parse(map['album_id'].toString()),
+      genresId: map['genres_id'] is int ? map['genres_id'] : int.parse(map['genres_id'].toString()),
+      title: map['title']?.toString() ?? '',
+      audioUrl: map['audio_url']?.toString() ?? '',
+      duration: map['duration'] is int ? map['duration'] : int.parse((map['duration'] ?? 0).toString()),
+      streamCount: map['stream_count'] is int ? map['stream_count'] : int.parse((map['stream_count'] ?? 0).toString()),
       artistName: artistName,
-      albumTitle: map['album_tbl']?['title'],
-      genreName: map['genres_tbl']?['name'],
+      albumTitle: map['album_tbl']?['title']?.toString(),
+      genreName: map['genres_tbl']?['name']?.toString(),
+      coverPng: cover?.toString(),
     );
   }
 
@@ -65,7 +70,7 @@ class TrackProvider extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('track_tbl')
-          .select('*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl!inner(title), genres_tbl!inner(name)');
+          .select('*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl!inner(title, cover_png), genres_tbl!inner(name)');
 
       _tracks = data.map<TrackModel>((map) => _parseTrack(map)).toList();
     } catch (e) {
@@ -84,7 +89,7 @@ class TrackProvider extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('track_tbl')
-          .select('*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl!inner(title), genres_tbl!inner(name)')
+          .select('*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl!inner(title, cover_png), genres_tbl!inner(name)')
           .order('stream_count', ascending: false)
           .limit(limit);
 
@@ -254,27 +259,12 @@ class TrackProvider extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('playlist_track_tbl')
-          .select('track_tbl(*, track_artist_tbl!inner(artist_tbl!inner(name)), genres_tbl!inner(name))')
+          .select('track_tbl(*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl(title, cover_png), genres_tbl!inner(name))')
           .eq('playlist_id', playlistId);
 
       return data.map<TrackModel>((map) {
         final trackData = map['track_tbl'];
-        final trackArtistRelations = trackData['track_artist_tbl'] as List?;
-        String artistName = '';
-        if (trackArtistRelations != null && trackArtistRelations.isNotEmpty) {
-          artistName = trackArtistRelations[0]['artist_tbl']?['name'] ?? '';
-        }
-        return TrackModel(
-          trackId: trackData['track_id'],
-          albumId: trackData['album_id'],
-          genresId: trackData['genres_id'],
-          title: trackData['title'] ?? '',
-          audioUrl: trackData['audio_url'] ?? '',
-          duration: trackData['duration'] ?? 0,
-          streamCount: trackData['stream_count'] ?? 0,
-          artistName: artistName,
-          genreName: trackData['genres_tbl']?['name'],
-        );
+        return _parseTrack(trackData);
       }).toList();
     } catch (e) {
       debugPrint('Failed to fetch playlist tracks: $e');
@@ -322,27 +312,12 @@ class TrackProvider extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('user_like_tbl')
-          .select('track_tbl(*, track_artist_tbl!inner(artist_tbl!inner(name)), genres_tbl!inner(name))')
+          .select('track_tbl(*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl(title, cover_png), genres_tbl!inner(name))')
           .eq('user_id', userId);
 
       _likedTracks = data.map<TrackModel>((map) {
         final trackData = map['track_tbl'];
-        final trackArtistRelations = trackData['track_artist_tbl'] as List?;
-        String artistName = '';
-        if (trackArtistRelations != null && trackArtistRelations.isNotEmpty) {
-          artistName = trackArtistRelations[0]['artist_tbl']?['name'] ?? '';
-        }
-        return TrackModel(
-          trackId: trackData['track_id'],
-          albumId: trackData['album_id'],
-          genresId: trackData['genres_id'],
-          title: trackData['title'] ?? '',
-          audioUrl: trackData['audio_url'] ?? '',
-          duration: trackData['duration'] ?? 0,
-          streamCount: trackData['stream_count'] ?? 0,
-          artistName: artistName,
-          genreName: trackData['genres_tbl']?['name'],
-        );
+        return _parseTrack(trackData);
       }).toList();
     } catch (e) {
       debugPrint('Failed to fetch liked tracks: $e');
@@ -363,7 +338,7 @@ class TrackProvider extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('track_tbl')
-          .select('*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl!inner(title), genres_tbl!inner(name)')
+          .select('*, track_artist_tbl!inner(artist_tbl!inner(name)), album_tbl!inner(title, cover_png), genres_tbl!inner(name)')
           .ilike('title', '%$query%');
 
       _searchResults = data.map<TrackModel>((map) => _parseTrack(map)).toList();
@@ -375,7 +350,7 @@ class TrackProvider extends ChangeNotifier {
 
   // ─── Detail Screen Queries ──────────────────────────────
 
-  Future<List<TrackModel>> fetchTracksByAlbum(int albumId) async {
+  Future<List<TrackModel>> fetchTracksByAlbum(int albumId, {String? albumCover}) async {
     try {
       final data = await _supabase
           .from('track_tbl')
@@ -383,7 +358,7 @@ class TrackProvider extends ChangeNotifier {
           .eq('album_id', albumId)
           .order('track_id');
 
-      return data.map<TrackModel>((map) => _parseTrack(map)).toList();
+      return data.map<TrackModel>((map) => _parseTrack(map, defaultCover: albumCover)).toList();
     } catch (e) {
       debugPrint('Failed to fetch tracks by album: $e');
       return [];
@@ -394,22 +369,12 @@ class TrackProvider extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('track_artist_tbl')
-          .select('track_tbl!inner(*, album_tbl!inner(title), genres_tbl!inner(name))')
+          .select('track_tbl!inner(*, album_tbl!inner(title, cover_png), genres_tbl!inner(name))')
           .eq('artist_id', artistId);
 
       return data.map<TrackModel>((map) {
         final trackData = map['track_tbl'];
-        return TrackModel(
-          trackId: trackData['track_id'],
-          albumId: trackData['album_id'],
-          genresId: trackData['genres_id'],
-          title: trackData['title'] ?? '',
-          audioUrl: trackData['audio_url'] ?? '',
-          duration: trackData['duration'] ?? 0,
-          streamCount: trackData['stream_count'] ?? 0,
-          albumTitle: trackData['album_tbl']?['title'],
-          genreName: trackData['genres_tbl']?['name'],
-        );
+        return _parseTrack(trackData);
       }).toList();
     } catch (e) {
       debugPrint('Failed to fetch tracks by artist: $e');
@@ -652,8 +617,44 @@ class TrackProvider extends ChangeNotifier {
   Future<void> incrementStreamCount(int trackId) async {
     try {
       await _supabase.rpc('increment_stream_count', params: {'tid': trackId});
+      _updateLocalStreamCount(trackId);
     } catch (e) {
       debugPrint('Failed to increment stream count: $e');
+    }
+  }
+
+  void notifyStreamIncremented(int trackId) {
+    _updateLocalStreamCount(trackId);
+  }
+
+  void _updateLocalStreamCount(int trackId) {
+    bool changed = false;
+    _tracks = _tracks.map((t) {
+      if (t.trackId == trackId) {
+        changed = true;
+        return t.copyWith(streamCount: t.streamCount + 1);
+      }
+      return t;
+    }).toList();
+
+    _searchResults = _searchResults.map((t) {
+      if (t.trackId == trackId) {
+        changed = true;
+        return t.copyWith(streamCount: t.streamCount + 1);
+      }
+      return t;
+    }).toList();
+
+    _likedTracks = _likedTracks.map((t) {
+      if (t.trackId == trackId) {
+        changed = true;
+        return t.copyWith(streamCount: t.streamCount + 1);
+      }
+      return t;
+    }).toList();
+
+    if (changed) {
+      notifyListeners();
     }
   }
 }

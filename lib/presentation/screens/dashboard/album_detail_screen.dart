@@ -5,6 +5,7 @@ import '../../../data/models/album_model.dart';
 import '../../../data/models/track_model.dart';
 import '../../../providers/audio_provider.dart';
 import '../../../providers/track_provider.dart';
+import '../../global_widgets/track_art_widget.dart';
 import '../now_playing/player_screen.dart';
 
 class AlbumDetailScreen extends StatefulWidget {
@@ -31,7 +32,10 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
       setState(() => _isLoading = false);
       return;
     }
-    final tracks = await context.read<TrackProvider>().fetchTracksByAlbum(widget.album!.albumId);
+    final tracks = await context.read<TrackProvider>().fetchTracksByAlbum(
+      widget.album!.albumId,
+      albumCover: widget.album!.coverPng,
+    );
     if (mounted) {
       setState(() {
         _tracks = tracks;
@@ -78,30 +82,15 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 32),
-                      Container(
-                        width: 180,
-                        height: 180,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceCard,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryNeon.withValues(alpha: 0.2),
-                              blurRadius: 30,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: album.coverPng != null && album.coverPng!.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  album.coverPng!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.album_rounded, size: 72, color: AppColors.primaryNeon),
-                                ),
-                              )
-                            : const Icon(Icons.album_rounded, size: 72, color: AppColors.primaryNeon),
+                      TrackArtWidget(
+                        imageUrl: album.coverPng,
+                        size: 180,
+                        borderRadius: 12,
+                        placeholderIcon: Icons.album_rounded,
+                        iconSize: 72,
+                        glowColor: AppColors.primaryNeon.withValues(alpha: 0.2),
+                        glowBlur: 30,
+                        glowSpread: 2,
                       ),
                     ],
                   ),

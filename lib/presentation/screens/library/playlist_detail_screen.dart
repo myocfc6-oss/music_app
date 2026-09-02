@@ -5,6 +5,7 @@ import '../../../data/models/playlist_model.dart';
 import '../../../data/models/track_model.dart';
 import '../../../providers/audio_provider.dart';
 import '../../../providers/track_provider.dart';
+import '../../global_widgets/track_art_widget.dart';
 import '../now_playing/player_screen.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
@@ -69,9 +70,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     ],
                   ),
                 );
-                if (confirmed == true) {
+                if (confirmed == true && context.mounted) {
+                  final navigator = Navigator.of(context);
                   await context.read<TrackProvider>().deletePlaylist(widget.playlist.playlistId);
-                  if (mounted) Navigator.pop(context);
+                  navigator.pop();
                 }
               }
             },
@@ -113,14 +115,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     final track = _tracks[index];
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceCard,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(Icons.music_note_rounded, color: AppColors.primaryNeon, size: 20),
+                      leading: TrackArtWidget(
+                        imageUrl: track.coverPng,
+                        size: 40,
+                        borderRadius: 6,
+                        iconSize: 20,
                       ),
                       title: Text(
                         track.title,

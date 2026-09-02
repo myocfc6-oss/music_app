@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/audio_provider.dart';
 import '../screens/now_playing/player_screen.dart';
+import 'track_art_widget.dart';
 
 class MiniAudioPlayer extends StatelessWidget {
   const MiniAudioPlayer({super.key});
@@ -39,18 +40,11 @@ class MiniAudioPlayer extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Row(
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Icon(
-                            Icons.music_note_rounded,
-                            color: AppColors.primaryNeon,
-                            size: 20,
-                          ),
+                        TrackArtWidget(
+                          imageUrl: track.coverPng,
+                          size: 40,
+                          borderRadius: 6,
+                          iconSize: 20,
                         ),
                         const SizedBox(width: 12),
                         Expanded(

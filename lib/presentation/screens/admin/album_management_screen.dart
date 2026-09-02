@@ -91,8 +91,8 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
     );
   }
 
-  void _deleteAlbum(AlbumModel album) {
-    showDialog<bool>(
+  Future<void> _deleteAlbum(AlbumModel album) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
@@ -108,11 +108,10 @@ class _AlbumManagementScreenState extends State<AlbumManagementScreen> {
           ),
         ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        context.read<TrackProvider>().deleteAlbum(album.albumId);
-      }
-    });
+    );
+    if (confirmed == true && mounted) {
+      context.read<TrackProvider>().deleteAlbum(album.albumId);
+    }
   }
 
   @override
@@ -188,7 +187,7 @@ class _AlbumCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   child: hasImage
                       ? Image.network(album.coverPng!, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _fallback())
+                          errorBuilder: (context, error, stackTrace) => _fallback())
                       : _fallback(),
                 ),
                 Positioned(

@@ -68,28 +68,27 @@ class _ArtistManagementScreenState extends State<ArtistManagementScreen> {
     );
   }
 
-  void _deleteArtist(ArtistModel artist) {
-    showDialog<bool>(
+  Future<void> _deleteArtist(ArtistModel artist) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete Artist', style: TextStyle(color: AppColors.textPrimary)),
         content: Text('Are you sure you want to delete "${artist.name}"?',
             style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        context.read<TrackProvider>().deleteArtist(artist.artistId);
-      }
-    });
+    );
+    if (confirmed == true && mounted) {
+      context.read<TrackProvider>().deleteArtist(artist.artistId);
+    }
   }
 
   @override
@@ -165,7 +164,7 @@ class _ArtistCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   child: hasImage
                       ? Image.network(artist.profilePic!, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _fallbackIcon())
+                          errorBuilder: (context, error, stackTrace) => _fallbackIcon())
                       : _fallbackIcon(),
                 ),
                 Positioned(

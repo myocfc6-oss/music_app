@@ -42,8 +42,15 @@ class SonusApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
-        ChangeNotifierProvider(create: (_) => AudioProvider()),
         ChangeNotifierProvider(create: (_) => TrackProvider()),
+        ChangeNotifierProxyProvider<TrackProvider, AudioProvider>(
+          create: (_) => AudioProvider(),
+          update: (_, trackProvider, audioProvider) {
+            final audio = audioProvider ?? AudioProvider();
+            audio.onStreamIncremented = trackProvider.notifyStreamIncremented;
+            return audio;
+          },
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

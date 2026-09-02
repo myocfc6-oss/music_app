@@ -120,8 +120,8 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
     );
   }
 
-  void _deleteTrack(TrackModel track) {
-    showDialog<bool>(
+  Future<void> _deleteTrack(TrackModel track) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceCard,
@@ -137,11 +137,10 @@ class _TrackManagementScreenState extends State<TrackManagementScreen> {
           ),
         ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        context.read<TrackProvider>().deleteTrack(track.trackId);
-      }
-    });
+    );
+    if (confirmed == true && mounted) {
+      context.read<TrackProvider>().deleteTrack(track.trackId);
+    }
   }
 
   int _parseDuration(String input) {

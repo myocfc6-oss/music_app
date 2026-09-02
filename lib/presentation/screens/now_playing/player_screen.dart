@@ -6,6 +6,7 @@ import '../../../data/models/track_model.dart';
 import '../../../providers/audio_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/track_provider.dart';
+import '../../global_widgets/track_art_widget.dart';
 import '../../screens/dashboard/artist_detail_screen.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -116,23 +117,13 @@ class _PlayerScreenState extends State<PlayerScreen>
                           aspectRatio: 1,
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 320),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceCard,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryNeon.withValues(alpha: audio.isPlaying ? 0.2 : 0.1),
-                                  blurRadius: audio.isPlaying ? 60 : 40,
-                                  spreadRadius: audio.isPlaying ? 8 : 5,
-                                ),
-                              ],
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.music_note_rounded,
-                                size: 80,
-                                color: AppColors.primaryNeon,
-                              ),
+                            child: TrackArtWidget(
+                              imageUrl: track.coverPng,
+                              borderRadius: 20,
+                              iconSize: 80,
+                              glowColor: AppColors.primaryNeon.withValues(alpha: audio.isPlaying ? 0.25 : 0.1),
+                              glowBlur: audio.isPlaying ? 60 : 40,
+                              glowSpread: audio.isPlaying ? 8 : 4,
                             ),
                           ),
                         ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -5,6 +6,7 @@ import '../../../data/models/genre_model.dart';
 import '../../../data/models/track_model.dart';
 import '../../../providers/audio_provider.dart';
 import '../../../providers/track_provider.dart';
+import '../../global_widgets/track_art_widget.dart';
 import 'widgets/genre_card.dart';
 import '../now_playing/player_screen.dart';
 
@@ -18,6 +20,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
   List<GenreModel> _genres = [];
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -33,12 +36,22 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _searchTracks(String query) {
-    context.read<TrackProvider>().searchTracks(query);
+    _debounceTimer?.cancel();
+    if (query.trim().isEmpty) {
+      context.read<TrackProvider>().searchTracks('');
+      return;
+    }
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        context.read<TrackProvider>().searchTracks(query);
+      }
+    });
   }
 
   @override
@@ -65,8 +78,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         ? IconButton(
                             icon: const Icon(Icons.clear, color: AppColors.textMuted),
                             onPressed: () {
+                              _debounceTimer?.cancel();
                               _searchController.clear();
-                              _searchTracks('');
+                              context.read<TrackProvider>().searchTracks('');
                             },
                           )
                         : null,
@@ -142,14 +156,10 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildSearchResult(TrackModel track, List<TrackModel> allTracks, int index) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Icon(Icons.music_note_rounded, color: AppColors.primaryNeon),
+      leading: TrackArtWidget(
+        imageUrl: track.coverPng,
+        size: 48,
+        borderRadius: 8,
       ),
       title: Text(
         track.title,
