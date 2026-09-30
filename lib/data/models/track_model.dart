@@ -11,6 +11,9 @@ class TrackModel {
   final String? albumTitle;
   final String? genreName;
   final String? coverPng;
+  final String? localAudioPath;
+  final String? localCoverPath;
+  final int? fileSizeBytes;
 
   TrackModel({
     required this.trackId,
@@ -25,7 +28,12 @@ class TrackModel {
     this.albumTitle,
     this.genreName,
     this.coverPng,
+    this.localAudioPath,
+    this.localCoverPath,
+    this.fileSizeBytes,
   });
+
+  bool get isDownloaded => localAudioPath != null && localAudioPath!.isNotEmpty;
 
   factory TrackModel.fromMap(
     Map<String, dynamic> map, {
@@ -33,6 +41,9 @@ class TrackModel {
     String? albumTitle,
     String? genreName,
     String? coverPng,
+    String? localAudioPath,
+    String? localCoverPath,
+    int? fileSizeBytes,
   }) {
     return TrackModel(
       trackId: map['track_id'] is int
@@ -55,10 +66,13 @@ class TrackModel {
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'].toString())
           : null,
-      artistName: artistName,
-      albumTitle: albumTitle,
-      genreName: genreName,
+      artistName: artistName ?? map['artist_name']?.toString(),
+      albumTitle: albumTitle ?? map['album_title']?.toString(),
+      genreName: genreName ?? map['genre_name']?.toString(),
       coverPng: coverPng ?? map['cover_png']?.toString() ?? map['cover_url']?.toString(),
+      localAudioPath: localAudioPath ?? map['local_audio_path']?.toString(),
+      localCoverPath: localCoverPath ?? map['local_cover_path']?.toString(),
+      fileSizeBytes: fileSizeBytes ?? (map['file_size_bytes'] is int ? map['file_size_bytes'] : null),
     );
   }
 
@@ -72,6 +86,12 @@ class TrackModel {
       'duration': duration,
       'stream_count': streamCount,
       'cover_png': coverPng,
+      'artist_name': artistName,
+      'album_title': albumTitle,
+      'genre_name': genreName,
+      'local_audio_path': localAudioPath,
+      'local_cover_path': localCoverPath,
+      'file_size_bytes': fileSizeBytes,
       'created_at': createdAt?.toIso8601String(),
     };
   }
@@ -89,6 +109,9 @@ class TrackModel {
     String? albumTitle,
     String? genreName,
     String? coverPng,
+    String? localAudioPath,
+    String? localCoverPath,
+    int? fileSizeBytes,
   }) {
     return TrackModel(
       trackId: trackId ?? this.trackId,
@@ -103,6 +126,9 @@ class TrackModel {
       albumTitle: albumTitle ?? this.albumTitle,
       genreName: genreName ?? this.genreName,
       coverPng: coverPng ?? this.coverPng,
+      localAudioPath: localAudioPath ?? this.localAudioPath,
+      localCoverPath: localCoverPath ?? this.localCoverPath,
+      fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
     );
   }
 
@@ -110,5 +136,15 @@ class TrackModel {
     final minutes = duration ~/ 60;
     final seconds = duration % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  String get fileSizeFormatted {
+    if (fileSizeBytes == null || fileSizeBytes == 0) return '';
+    final mb = fileSizeBytes! / (1024 * 1024);
+    if (mb >= 1.0) {
+      return '${mb.toStringAsFixed(1)} MB';
+    }
+    final kb = fileSizeBytes! / 1024;
+    return '${kb.toStringAsFixed(0)} KB';
   }
 }

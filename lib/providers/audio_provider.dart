@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/track_model.dart';
 
 class AudioProvider extends ChangeNotifier {
   final AudioPlayer _player = AudioPlayer();
+  ConcatenatingAudioSource _playlistSource = ConcatenatingAudioSource(children: []);
 
   TrackModel? _currentTrack;
   List<TrackModel> _queue = [];
@@ -21,6 +24,7 @@ class AudioProvider extends ChangeNotifier {
   StreamSubscription<PlayerState>? _playerStateSub;
   StreamSubscription<bool>? _shuffleModeEnabledSub;
   StreamSubscription<LoopMode>? _loopModeSub;
+  StreamSubscription<int?>? _currentIndexSub;
 
   // Getters
   TrackModel? get currentTrack => _currentTrack;
@@ -112,6 +116,15 @@ class AudioProvider extends ChangeNotifier {
       }
       notifyListeners();
     });
+
+    _currentIndexSub = _player.currentIndexStream.listen((index) {
+      if (index != null && index >= 0 && index < _queue.length && index != _currentIndex) {
+        _currentIndex = index;
+        _currentTrack = _queue[index];
+        _countedTrackId = null;
+        notifyListeners();
+      }
+    });
   }
 
   void _checkStreamCount(Duration position) {
@@ -151,31 +164,91 @@ class AudioProvider extends ChangeNotifier {
       return;
     }
 
-    if (_currentIndex < _queue.length - 1) {
-      _playByIndex(_currentIndex + 1);
-    } else if (_repeatMode == AppRepeatMode.all) {
-      _playByIndex(0);
-    } else {
-      _currentTrack = null;
-      _currentIndex = -1;
-      notifyListeners();
+    if (_repeatMode == AppRepeatMode.all && !_player.hasNext) {
+      _player.seek(Duration.zero, index: 0);
+      _player.play();
     }
+  }
+
+  AudioSource _buildAudioSource(TrackModel track) {
+    Uri audioUri;
+    if (track.localAudioPath != null && File(track.localAudioPath!).existsSync()) {
+      audioUri = Uri.file(track.localAudioPath!);
+    } else {
+      final formattedUrl = formatAudioUrl(track.audioUrl);
+      audioUri = Uri.parse(formattedUrl);
+    }
+
+    Uri? artUri;
+    if (track.localCoverPath != null && File(track.localCoverPath!).existsSync()) {
+      artUri = Uri.file(track.localCoverPath!);
+    } else if (track.coverPng != null && track.coverPng!.trim().isNotEmpty) {
+      try {
+        final parsed = Uri.parse(track.coverPng!.trim());
+        if (parsed.hasScheme) {
+          artUri = parsed;
+        }
+      } catch (_) {}
+    }
+
+    return AudioSource.uri(
+      audioUri,
+      tag: MediaItem(
+        id: track.trackId.toString(),
+        album: (track.albumTitle != null && track.albumTitle!.isNotEmpty)
+            ? track.albumTitle!
+            : 'Sonus Music',
+        title: track.title.isNotEmpty ? track.title : 'Unknown Track',
+        artist: (track.artistName != null && track.artistName!.isNotEmpty)
+            ? track.artistName!
+            : 'Unknown Artist',
+        artUri: artUri,
+        duration: track.duration > 0 ? Duration(seconds: track.duration) : null,
+      ),
+    );
   }
 
   // Play a single track (no queue)
   Future<void> playTrack(TrackModel track) async {
-    _currentTrack = track;
-    _queue = [track];
-    _currentIndex = 0;
-    await _loadAndPlay(track);
+    await playTrackFromQueue([track], 0);
   }
 
   // Play a track within a queue
   Future<void> playTrackFromQueue(List<TrackModel> tracks, int index) async {
+    if (tracks.isEmpty || index < 0 || index >= tracks.length) return;
     _queue = List.from(tracks);
     _currentIndex = index;
     _currentTrack = _queue[index];
-    await _loadAndPlay(_queue[index]);
+    _errorMessage = null;
+    _countedTrackId = null;
+
+    try {
+      final sources = <AudioSource>[];
+      for (final t in _queue) {
+        if (t.audioUrl.isNotEmpty || (t.localAudioPath != null && File(t.localAudioPath!).existsSync())) {
+          sources.add(_buildAudioSource(t));
+        }
+      }
+
+      if (sources.isEmpty) {
+        _errorMessage = 'No audio available for the selected tracks.';
+        notifyListeners();
+        return;
+      }
+
+      _playlistSource = ConcatenatingAudioSource(children: sources);
+      await _player.stop();
+      await _player.setAudioSource(
+        _playlistSource,
+        initialIndex: index.clamp(0, sources.length - 1),
+        initialPosition: Duration.zero,
+      );
+      await _player.play();
+    } catch (e) {
+      _errorMessage = 'Playback error: $e';
+      debugPrint('Failed to play audio queue: $e');
+    }
+    notifyListeners();
   }
 
   String? _errorMessage;
@@ -194,34 +267,20 @@ class AudioProvider extends ChangeNotifier {
     return formatted;
   }
 
-  Future<void> _loadAndPlay(TrackModel track) async {
-    _errorMessage = null;
-    if (_currentTrack?.trackId != _countedTrackId) {
-      _countedTrackId = null;
-    }
-    if (track.audioUrl.isEmpty) {
-      _errorMessage = 'No audio URL provided for this track.';
-      notifyListeners();
-      return;
-    }
-
-    try {
-      final formattedUrl = formatAudioUrl(track.audioUrl);
-      await _player.stop();
-      await _player.setUrl(formattedUrl);
-      await _player.play();
-    } catch (e) {
-      _errorMessage = 'Playback error: $e';
-      debugPrint('Failed to play audio: $e');
-    }
-    notifyListeners();
-  }
-
-  void _playByIndex(int index) {
+  Future<void> playByIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
     _currentIndex = index;
     _currentTrack = _queue[index];
-    _loadAndPlay(_queue[index]);
+    _countedTrackId = null;
+    try {
+      await _player.seek(Duration.zero, index: index);
+      if (!_player.playing) {
+        await _player.play();
+      }
+    } catch (e) {
+      debugPrint('Failed to play index $index: $e');
+    }
+    notifyListeners();
   }
 
   Future<void> togglePlayPause() async {
@@ -257,10 +316,10 @@ class AudioProvider extends ChangeNotifier {
       return;
     }
 
-    if (_currentIndex < _queue.length - 1) {
-      _playByIndex(_currentIndex + 1);
+    if (_player.hasNext) {
+      await _player.seekToNext();
     } else if (_repeatMode == AppRepeatMode.all) {
-      _playByIndex(0);
+      await _player.seek(Duration.zero, index: 0);
     } else {
       await _player.pause();
       await _player.seek(Duration.zero);
@@ -278,24 +337,16 @@ class AudioProvider extends ChangeNotifier {
       return;
     }
 
-    if (_currentIndex > 0) {
-      _playByIndex(_currentIndex - 1);
+    if (_player.hasPrevious) {
+      await _player.seekToPrevious();
     } else if (_repeatMode == AppRepeatMode.all) {
-      _playByIndex(_queue.length - 1);
+      await _player.seek(Duration.zero, index: _queue.length - 1);
     }
   }
 
   Future<void> toggleShuffle() async {
     _isShuffleOn = !_isShuffleOn;
     await _player.setShuffleModeEnabled(_isShuffleOn);
-    if (_isShuffleOn && _queue.length > 1) {
-      final current = _currentTrack;
-      final shuffled = List<TrackModel>.from(_queue)..shuffle();
-      _queue = shuffled;
-      if (current != null) {
-        _currentIndex = _queue.indexWhere((t) => t.trackId == current.trackId);
-      }
-    }
     notifyListeners();
   }
 
@@ -319,30 +370,29 @@ class AudioProvider extends ChangeNotifier {
 
   Future<void> addToQueue(TrackModel track) async {
     _queue.add(track);
+    if (_player.audioSource != null && track.audioUrl.isNotEmpty) {
+      await _playlistSource.add(_buildAudioSource(track));
+    }
     notifyListeners();
   }
 
   Future<void> removeFromQueue(int index) async {
     if (index < 0 || index >= _queue.length) return;
     _queue.removeAt(index);
-    if (index < _currentIndex) {
-      _currentIndex--;
-    } else if (index == _currentIndex) {
-      if (_queue.isEmpty) {
-        await _player.stop();
-        _currentTrack = null;
-        _currentIndex = -1;
-      } else {
-        _currentIndex = _currentIndex.clamp(0, _queue.length - 1);
-        _currentTrack = _queue[_currentIndex];
-        await _loadAndPlay(_queue[_currentIndex]);
-      }
+    if (_player.audioSource != null && index < _playlistSource.length) {
+      await _playlistSource.removeAt(index);
+    }
+    if (_queue.isEmpty) {
+      await _player.stop();
+      _currentTrack = null;
+      _currentIndex = -1;
     }
     notifyListeners();
   }
 
   Future<void> clearQueue() async {
     await _player.stop();
+    await _playlistSource.clear();
     _queue.clear();
     _currentIndex = -1;
     _currentTrack = null;
@@ -356,6 +406,7 @@ class AudioProvider extends ChangeNotifier {
     _playerStateSub?.cancel();
     _shuffleModeEnabledSub?.cancel();
     _loopModeSub?.cancel();
+    _currentIndexSub?.cancel();
     _player.dispose();
     super.dispose();
   }

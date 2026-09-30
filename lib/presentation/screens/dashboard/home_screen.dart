@@ -4,6 +4,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../data/models/track_model.dart';
 import '../../../data/models/album_model.dart';
 import '../../../providers/audio_provider.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/download_provider.dart';
 import '../../../providers/track_provider.dart';
 import '../../global_widgets/mini_audio_player.dart';
 import '../../global_widgets/track_art_widget.dart';
@@ -56,14 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         bottomNavigationBar: Container(
-          color: AppColors.surfaceDark,
+          color: context.surfaceDark,
           child: SafeArea(
             child: BottomNavigationBar(
               currentIndex: _currentIndex,
               onTap: (index) => setState(() => _currentIndex = index),
-              backgroundColor: AppColors.surfaceDark,
-              selectedItemColor: AppColors.primaryNeon,
-              unselectedItemColor: AppColors.textMuted,
+              backgroundColor: context.surfaceDark,
+              selectedItemColor: context.primaryNeon,
+              unselectedItemColor: context.textMuted,
               items: const [
                 BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
                 BottomNavigationBarItem(icon: Icon(Icons.search_rounded), label: 'Search'),
@@ -93,10 +95,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeContent() {
-    return Consumer<TrackProvider>(
-      builder: (context, trackProvider, _) {
+    return Consumer3<TrackProvider, AuthProvider, DownloadProvider>(
+      builder: (context, trackProvider, auth, downloadProvider, _) {
         final tracks = trackProvider.tracks;
         final albums = trackProvider.albums;
+        final downloadedTracks = downloadProvider.downloadedTracks;
 
         return CustomScrollView(
           slivers: [
@@ -120,6 +123,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               actions: [
+                if (auth.isGuest)
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: context.primaryNeon.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.primaryNeon.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.offline_pin_rounded, size: 14, color: context.primaryNeon),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Offline Mode',
+                          style: TextStyle(
+                            color: context.primaryNeon,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.notifications_outlined),
                   onPressed: () {},
@@ -127,43 +155,81 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 8),
               ],
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Text(
-                  'Trending Now',
-                  style: Theme.of(context).textTheme.titleLarge,
+            if (tracks.isEmpty && downloadedTracks.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Row(
+                    children: [
+                      Icon(Icons.offline_pin_rounded, color: context.primaryNeon, size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Downloaded Songs (Offline)',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (trackProvider.isLoadingTracks)
-              const SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(color: AppColors.primaryNeon),
-                  ),
-                ),
-              )
-            else if (tracks.isEmpty)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(
-                    child: Text(
-                      'No tracks yet',
-                      style: TextStyle(color: AppColors.textMuted),
-                    ),
-                  ),
-                ),
-              )
-            else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildTrackTile(tracks[index], tracks, index),
-                  childCount: tracks.length,
+                  (context, index) => _buildTrackTile(
+                    context,
+                    downloadedTracks[index],
+                    downloadedTracks,
+                    index,
+                  ),
+                  childCount: downloadedTracks.length,
                 ),
               ),
+            ] else ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Text(
+                    'Trending Now',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+              ),
+              if (trackProvider.isLoadingTracks && tracks.isEmpty)
+                SliverToBoxAdapter(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: CircularProgressIndicator(color: context.primaryNeon),
+                    ),
+                  ),
+                )
+              else if (tracks.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(Icons.wifi_off_rounded, size: 48, color: context.textMuted),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No tracks available offline',
+                          style: TextStyle(color: context.textMuted, fontSize: 16),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Connect to the internet or listen to your downloads',
+                          style: TextStyle(color: context.textMuted.withValues(alpha: 0.7), fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => _buildTrackTile(context, tracks[index], tracks, index),
+                    childCount: tracks.length,
+                  ),
+                ),
+            ],
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
@@ -173,23 +239,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            if (trackProvider.isLoadingAlbums)
-              const SliverToBoxAdapter(
+            if (trackProvider.isLoadingAlbums && albums.isEmpty)
+              SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                    padding: const EdgeInsets.all(32),
+                    child: CircularProgressIndicator(color: context.primaryNeon),
                   ),
                 ),
               )
             else if (albums.isEmpty)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Center(
                     child: Text(
-                      'No albums yet',
-                      style: TextStyle(color: AppColors.textMuted),
+                      'No albums cached yet',
+                      style: TextStyle(color: context.textMuted),
                     ),
                   ),
                 ),
@@ -205,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     childAspectRatio: 0.8,
                   ),
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildAlbumCard(albums[index]),
+                    (context, index) => _buildAlbumCard(context, albums[index]),
                     childCount: albums.length,
                   ),
                 ),
@@ -217,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTrackTile(TrackModel track, List<TrackModel> allTracks, int index) {
+  Widget _buildTrackTile(BuildContext context, TrackModel track, List<TrackModel> allTracks, int index) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: TrackArtWidget(
@@ -227,8 +293,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       title: Text(
         track.title,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
+        style: TextStyle(
+          color: context.textPrimary,
           fontWeight: FontWeight.w500,
         ),
         maxLines: 1,
@@ -236,17 +302,17 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       subtitle: Text(
         track.artistName ?? '',
-        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.textMuted, fontSize: 12),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             track.durationFormatted,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.textMuted, fontSize: 12),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.more_vert, color: AppColors.textMuted, size: 20),
+          Icon(Icons.more_vert, color: context.textMuted, size: 20),
         ],
       ),
       onTap: () {
@@ -261,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAlbumCard(AlbumModel album) {
+  Widget _buildAlbumCard(BuildContext context, AlbumModel album) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -287,8 +353,8 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 8),
           Text(
             album.title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
+            style: TextStyle(
+              color: context.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -297,8 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Text(
             album.artistName ?? '',
-            style: const TextStyle(
-              color: AppColors.textMuted,
+            style: TextStyle(
+              color: context.textMuted,
               fontSize: 12,
             ),
           ),

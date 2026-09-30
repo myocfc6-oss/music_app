@@ -27,12 +27,12 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 32),
-                _buildAvatar(auth),
+                _buildAvatar(context, auth),
                 const SizedBox(height: 16),
                 Text(
                   auth.user!.name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
+                  style: TextStyle(
+                    color: context.textPrimary,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -40,29 +40,77 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   auth.user!.email,
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                  style: TextStyle(color: context.textMuted, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryNeon.withValues(alpha: 0.15),
+                    color: context.primaryNeon.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    auth.user!.role.toUpperCase(),
-                    style: const TextStyle(
-                      color: AppColors.primaryNeon,
+                    auth.isGuest ? 'OFFLINE GUEST' : auth.user!.role.toUpperCase(),
+                    style: TextStyle(
+                      color: context.primaryNeon,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1,
                     ),
                   ),
                 ),
+                if (auth.isGuest) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.surfaceCard,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.primaryNeon.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.cloud_off_rounded, color: context.primaryNeon, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Offline Mode Active',
+                              style: TextStyle(
+                                color: context.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'You are currently using Sonus offline. Sign in or create an account when connected to sync playlists and likes.',
+                          style: TextStyle(
+                            color: context.textMuted,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+                            },
+                            child: const Text('Sign In / Register'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
                 _buildSettingsSection(context, auth),
                 const SizedBox(height: 24),
-                _buildThemeToggle(context, theme),
+                _buildThemeSection(context, theme),
                 const SizedBox(height: 24),
                 _buildSignOutButton(context, auth),
                 const SizedBox(height: 40),
@@ -74,20 +122,20 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar(AuthProvider auth) {
+  Widget _buildAvatar(BuildContext context, AuthProvider auth) {
     return Container(
       width: 96,
       height: 96,
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: context.surfaceCard,
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.primaryNeon.withValues(alpha: 0.3), width: 2),
+        border: Border.all(color: context.primaryNeon.withValues(alpha: 0.3), width: 2),
       ),
       child: Center(
         child: Text(
           auth.user!.name.isNotEmpty ? auth.user!.name[0].toUpperCase() : '?',
-          style: const TextStyle(
-            color: AppColors.primaryNeon,
+          style: TextStyle(
+            color: context.primaryNeon,
             fontSize: 36,
             fontWeight: FontWeight.bold,
           ),
@@ -133,21 +181,21 @@ class ProfileScreen extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: context.surfaceCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.borderDark),
       ),
       child: Column(
         children: [
           for (int i = 0; i < items.length; i++) ...[
-            if (i > 0) Divider(height: 1, color: AppColors.borderDark, indent: 56),
+            if (i > 0) Divider(height: 1, color: context.borderDark, indent: 56),
             ListTile(
-              leading: Icon(items[i].icon, color: AppColors.textMuted),
+              leading: Icon(items[i].icon, color: context.textMuted),
               title: Text(
                 items[i].title,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                style: TextStyle(color: context.textPrimary, fontSize: 16),
               ),
-              trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+              trailing: Icon(Icons.chevron_right_rounded, color: context.textMuted),
               onTap: items[i].onTap,
             ),
           ],
@@ -156,27 +204,65 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeToggle(BuildContext context, ThemeProvider theme) {
+  Widget _buildThemeSection(BuildContext context, ThemeProvider theme) {
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: context.surfaceCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: context.borderDark),
       ),
-      child: ListTile(
-        leading: Icon(
-          theme.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-          color: AppColors.textMuted,
-        ),
-        title: const Text(
-          'Dark Mode',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
-        ),
-        trailing: Switch(
-          value: theme.isDarkMode,
-          onChanged: (_) => theme.toggleTheme(),
-          activeThumbColor: AppColors.primaryNeon,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                theme.currentMode == AppThemeMode.system
+                    ? Icons.brightness_auto_rounded
+                    : (theme.isDarkMode
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded),
+                color: context.primaryNeon,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Theme Mode',
+                style: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _ThemeOptionButton(
+                label: 'System',
+                icon: Icons.brightness_auto_rounded,
+                isSelected: theme.currentMode == AppThemeMode.system,
+                onTap: () => theme.setThemeMode(AppThemeMode.system),
+              ),
+              const SizedBox(width: 8),
+              _ThemeOptionButton(
+                label: 'Dark',
+                icon: Icons.dark_mode_rounded,
+                isSelected: theme.currentMode == AppThemeMode.dark,
+                onTap: () => theme.setThemeMode(AppThemeMode.dark),
+              ),
+              const SizedBox(width: 8),
+              _ThemeOptionButton(
+                label: 'Light',
+                icon: Icons.light_mode_rounded,
+                isSelected: theme.currentMode == AppThemeMode.light,
+                onTap: () => theme.setThemeMode(AppThemeMode.light),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -187,21 +273,32 @@ class ProfileScreen extends StatelessWidget {
       height: 56,
       child: OutlinedButton(
         onPressed: () async {
+          final isGuest = auth.isGuest;
           final confirmed = await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: AppColors.surfaceCard,
-              title: const Text('Sign Out', style: TextStyle(color: AppColors.textPrimary)),
-              content: const Text('Are you sure you want to sign out?',
-                  style: TextStyle(color: AppColors.textMuted)),
+            builder: (dialogCtx) => AlertDialog(
+              backgroundColor: context.surfaceCard,
+              title: Text(
+                isGuest ? 'Exit Offline Mode' : 'Sign Out',
+                style: TextStyle(color: context.textPrimary),
+              ),
+              content: Text(
+                isGuest
+                    ? 'Return to the welcome screen to sign in or create an account?'
+                    : 'Are you sure you want to sign out?',
+                style: TextStyle(color: context.textMuted),
+              ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  child: Text('Cancel', style: TextStyle(color: context.textMuted)),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+                  onPressed: () => Navigator.pop(dialogCtx, true),
+                  child: Text(
+                    isGuest ? 'Exit' : 'Sign Out',
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
                 ),
               ],
             ),
@@ -210,7 +307,7 @@ class ProfileScreen extends StatelessWidget {
           if (confirmed == true) {
             await auth.signOut();
             if (context.mounted) {
-              Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+              Navigator.of(context).pushNamedAndRemoveUntil('/welcome', (_) => false);
             }
           }
         },
@@ -219,16 +316,72 @@ class ProfileScreen extends StatelessWidget {
           foregroundColor: Colors.redAccent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.logout_rounded, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.logout_rounded, size: 20),
+            const SizedBox(width: 8),
             Text(
-              'Sign Out',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              auth.isGuest ? 'Exit Offline Mode' : 'Sign Out',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeOptionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ThemeOptionButton({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? context.primaryNeon.withValues(alpha: 0.15)
+                : context.surfaceElevated,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? context.primaryNeon : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected ? context.primaryNeon : context.textMuted,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? context.primaryNeon : context.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -254,26 +407,26 @@ void _showEditProfileDialog(BuildContext context, AuthProvider auth) {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: AppColors.surfaceCard,
-      title: const Text('Edit Profile', style: TextStyle(color: AppColors.textPrimary)),
+      backgroundColor: context.surfaceCard,
+      title: Text('Edit Profile', style: TextStyle(color: context.textPrimary)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: nameController,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: context.textPrimary),
+            decoration: InputDecoration(
               hintText: 'Name',
-              prefixIcon: Icon(Icons.person_outline, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.person_outline, color: context.textMuted),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: emailController,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: context.textPrimary),
+            decoration: InputDecoration(
               hintText: 'Email',
-              prefixIcon: Icon(Icons.email_outlined, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.email_outlined, color: context.textMuted),
             ),
           ),
         ],
@@ -281,7 +434,7 @@ void _showEditProfileDialog(BuildContext context, AuthProvider auth) {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
+          child: Text('Cancel', style: TextStyle(color: context.textMuted)),
         ),
         TextButton(
           onPressed: () {
@@ -293,7 +446,7 @@ void _showEditProfileDialog(BuildContext context, AuthProvider auth) {
               ),
             );
           },
-          child: const Text('Save', style: TextStyle(color: AppColors.primaryNeon)),
+          child: Text('Save', style: TextStyle(color: context.primaryNeon)),
         ),
       ],
     ),
@@ -308,38 +461,38 @@ void _showChangePasswordDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
-      backgroundColor: AppColors.surfaceCard,
-      title: const Text('Change Password', style: TextStyle(color: AppColors.textPrimary)),
+      backgroundColor: context.surfaceCard,
+      title: Text('Change Password', style: TextStyle(color: context.textPrimary)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: currentPasswordController,
             obscureText: true,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: context.textPrimary),
+            decoration: InputDecoration(
               hintText: 'Current Password',
-              prefixIcon: Icon(Icons.lock_outline, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.lock_outline, color: context.textMuted),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: newPasswordController,
             obscureText: true,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: context.textPrimary),
+            decoration: InputDecoration(
               hintText: 'New Password',
-              prefixIcon: Icon(Icons.lock_reset, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.lock_reset, color: context.textMuted),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: confirmPasswordController,
             obscureText: true,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            style: TextStyle(color: context.textPrimary),
+            decoration: InputDecoration(
               hintText: 'Confirm New Password',
-              prefixIcon: Icon(Icons.lock_outline, color: AppColors.textMuted),
+              prefixIcon: Icon(Icons.lock_outline, color: context.textMuted),
             ),
           ),
         ],
@@ -347,7 +500,7 @@ void _showChangePasswordDialog(BuildContext context) {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Cancel'),
+          child: Text('Cancel', style: TextStyle(color: context.textMuted)),
         ),
         TextButton(
           onPressed: () {
@@ -377,7 +530,7 @@ void _showChangePasswordDialog(BuildContext context) {
               ),
             );
           },
-          child: const Text('Update', style: TextStyle(color: AppColors.primaryNeon)),
+          child: Text('Update', style: TextStyle(color: context.primaryNeon)),
         ),
       ],
     ),

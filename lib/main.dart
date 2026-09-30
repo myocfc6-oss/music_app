@@ -5,8 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/audio_provider.dart';
+import 'providers/download_provider.dart';
+import 'providers/device_music_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/track_provider.dart';
+import 'presentation/screens/library/downloads_screen.dart';
+import 'presentation/screens/library/device_music_screen.dart';
 import 'presentation/screens/welcome/welcome_screen.dart';
 import 'presentation/screens/auth/auth_gate.dart';
 import 'presentation/screens/auth/login_screen.dart';
@@ -20,10 +24,18 @@ import 'presentation/screens/admin/album_management_screen.dart';
 import 'presentation/screens/admin/user_management_screen.dart';
 import 'presentation/screens/dashboard/album_detail_screen.dart';
 import 'presentation/screens/dashboard/artist_detail_screen.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'presentation/screens/profile/profile_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.example.music_app.channel.audio',
+    androidNotificationChannelName: 'Sonus Music Playback',
+    androidNotificationOngoing: true,
+    androidNotificationIcon: 'mipmap/ic_launcher',
+  );
 
   await Supabase.initialize(
     url: 'https://rlxmvbvlhthxkoxqnxvp.supabase.co',
@@ -42,6 +54,8 @@ class SonusApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
+        ChangeNotifierProvider(create: (_) => DownloadProvider()..init()),
+        ChangeNotifierProvider(create: (_) => DeviceMusicProvider()..init()),
         ChangeNotifierProvider(create: (_) => TrackProvider()),
         ChangeNotifierProxyProvider<TrackProvider, AudioProvider>(
           create: (_) => AudioProvider(),
@@ -57,7 +71,7 @@ class SonusApp extends StatelessWidget {
           return MaterialApp(
             title: 'Sonus',
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.darkTheme,
+            theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             initialRoute: '/',
@@ -68,6 +82,8 @@ class SonusApp extends StatelessWidget {
               '/register': (context) => const RegisterScreen(),
               '/home': (context) => const HomeScreen(),
               '/player': (context) => const PlayerScreen(),
+              '/downloads': (context) => const DownloadsScreen(),
+              '/device_music': (context) => const DeviceMusicScreen(),
               '/album_detail': (context) => const AlbumDetailScreen(),
               '/artist_detail': (context) => const ArtistDetailScreen(),
               '/admin': (context) => const AdminDashboardScreen(),

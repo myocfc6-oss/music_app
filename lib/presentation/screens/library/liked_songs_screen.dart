@@ -34,15 +34,15 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
       body: Consumer2<AuthProvider, TrackProvider>(
         builder: (context, auth, trackProvider, _) {
           if (auth.user == null) {
-            return const Center(
+            return Center(
               child: Text('Please sign in to view liked songs',
-                  style: TextStyle(color: AppColors.textMuted)),
+                  style: TextStyle(color: context.textMuted)),
             );
           }
 
           if (trackProvider.isLoadingLiked) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primaryNeon),
+            return Center(
+              child: CircularProgressIndicator(color: context.primaryNeon),
             );
           }
 
@@ -56,17 +56,17 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                   Icon(
                     Icons.favorite_outline_rounded,
                     size: 64,
-                    color: AppColors.textMuted.withValues(alpha: 0.3),
+                    color: context.textMuted.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'No liked songs yet',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                    style: TextStyle(color: context.textMuted, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Tap the heart icon on any track to like it',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                    style: TextStyle(color: context.textMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -78,7 +78,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
             itemCount: likedTracks.length,
             itemBuilder: (context, index) {
               final track = likedTracks[index];
-              return _buildLikedTrackTile(track, likedTracks, index, auth, trackProvider);
+              return _buildLikedTrackTile(context, track, likedTracks, index, auth, trackProvider);
             },
           );
         },
@@ -87,6 +87,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
   }
 
   Widget _buildLikedTrackTile(
+    BuildContext context,
     TrackModel track,
     List<TrackModel> allTracks,
     int index,
@@ -102,8 +103,8 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
       ),
       title: Text(
         track.title,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
+        style: TextStyle(
+          color: context.textPrimary,
           fontWeight: FontWeight.w500,
         ),
         maxLines: 1,
@@ -111,18 +112,18 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
       ),
       subtitle: Text(
         track.artistName ?? '',
-        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.textMuted, fontSize: 12),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             track.durationFormatted,
-            style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+            style: TextStyle(color: context.textMuted, fontSize: 12),
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.favorite_rounded, color: AppColors.primaryNeon, size: 20),
+            icon: Icon(Icons.favorite_rounded, color: context.primaryNeon, size: 20),
             onPressed: () {
               trackProvider.unlikeTrack(auth.user!.id, track.trackId);
             },

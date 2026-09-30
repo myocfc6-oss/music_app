@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
@@ -54,7 +55,7 @@ class TrackArtWidget extends StatelessWidget {
     final formattedUrl = _formatImageUrl(imageUrl);
 
     final boxDecoration = BoxDecoration(
-      color: AppColors.surfaceCard,
+      color: context.surfaceCard,
       borderRadius: BorderRadius.circular(borderRadius),
       boxShadow: glowColor != null && glowBlur > 0
           ? [
@@ -68,6 +69,32 @@ class TrackArtWidget extends StatelessWidget {
     );
 
     if (formattedUrl != null) {
+      // 1. Check if local file
+      final isLocal = !formattedUrl.startsWith('http://') &&
+          !formattedUrl.startsWith('https://') &&
+          File(formattedUrl).existsSync();
+
+      if (isLocal) {
+        return Container(
+          width: effectiveWidth,
+          height: effectiveHeight,
+          decoration: boxDecoration,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: Image.file(
+              File(formattedUrl),
+              width: effectiveWidth,
+              height: effectiveHeight,
+              fit: fit,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildPlaceholder(context, effectiveWidth, effectiveHeight, effectiveIconSize);
+              },
+            ),
+          ),
+        );
+      }
+
+      // 2. Network Image
       return Container(
         width: effectiveWidth,
         height: effectiveHeight,
@@ -80,21 +107,21 @@ class TrackArtWidget extends StatelessWidget {
             height: effectiveHeight,
             fit: fit,
             errorBuilder: (context, error, stackTrace) {
-              return _buildPlaceholder(effectiveWidth, effectiveHeight, effectiveIconSize);
+              return _buildPlaceholder(context, effectiveWidth, effectiveHeight, effectiveIconSize);
             },
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
               return Container(
                 width: effectiveWidth,
                 height: effectiveHeight,
-                color: AppColors.surfaceCard,
+                color: context.surfaceCard,
                 child: Center(
                   child: SizedBox(
                     width: (effectiveWidth * 0.3).clamp(12.0, 24.0),
                     height: (effectiveHeight * 0.3).clamp(12.0, 24.0),
-                    child: const CircularProgressIndicator(
+                    child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.primaryNeon,
+                      color: context.primaryNeon,
                     ),
                   ),
                 ),
@@ -109,22 +136,22 @@ class TrackArtWidget extends StatelessWidget {
       width: effectiveWidth,
       height: effectiveHeight,
       decoration: boxDecoration,
-      child: _buildPlaceholder(effectiveWidth, effectiveHeight, effectiveIconSize),
+      child: _buildPlaceholder(context, effectiveWidth, effectiveHeight, effectiveIconSize),
     );
   }
 
-  Widget _buildPlaceholder(double w, double h, double iconSize) {
+  Widget _buildPlaceholder(BuildContext context, double w, double h, double iconSize) {
     return Container(
       width: w,
       height: h,
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: context.surfaceCard,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Center(
         child: Icon(
           placeholderIcon,
-          color: AppColors.primaryNeon,
+          color: context.primaryNeon,
           size: iconSize,
         ),
       ),

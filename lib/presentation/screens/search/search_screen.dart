@@ -69,14 +69,14 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: TextField(
                   controller: _searchController,
                   onChanged: _searchTracks,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  cursorColor: AppColors.primaryNeon,
+                  style: TextStyle(color: context.textPrimary),
+                  cursorColor: context.primaryNeon,
                   decoration: InputDecoration(
                     hintText: 'Search songs, artists...',
-                    prefixIcon: const Icon(Icons.search, color: AppColors.textMuted),
+                    prefixIcon: Icon(Icons.search, color: context.textMuted),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, color: AppColors.textMuted),
+                            icon: Icon(Icons.clear, color: context.textMuted),
                             onPressed: () {
                               _debounceTimer?.cancel();
                               _searchController.clear();
@@ -85,14 +85,14 @@ class _SearchScreenState extends State<SearchScreen> {
                           )
                         : null,
                     filled: true,
-                    fillColor: AppColors.surfaceCard,
+                    fillColor: context.surfaceCard,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primaryNeon),
+                      borderSide: BorderSide(color: context.primaryNeon),
                     ),
                   ),
                 ),
@@ -103,19 +103,19 @@ class _SearchScreenState extends State<SearchScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildSearchResult(searchResults[index], searchResults, index),
+                    (context, index) => _buildSearchResult(context, searchResults[index], searchResults, index),
                     childCount: searchResults.length,
                   ),
                 ),
               )
             else if (isSearching && searchResults.isEmpty)
-              const SliverToBoxAdapter(
+              SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Center(
                     child: Text(
                       'No results found',
-                      style: TextStyle(color: AppColors.textMuted),
+                      style: TextStyle(color: context.textMuted),
                     ),
                   ),
                 ),
@@ -153,7 +153,7 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchResult(TrackModel track, List<TrackModel> allTracks, int index) {
+  Widget _buildSearchResult(BuildContext context, TrackModel track, List<TrackModel> allTracks, int index) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       leading: TrackArtWidget(
@@ -163,8 +163,8 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       title: Text(
         track.title,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
+        style: TextStyle(
+          color: context.textPrimary,
           fontWeight: FontWeight.w500,
         ),
         maxLines: 1,
@@ -172,11 +172,11 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       subtitle: Text(
         track.artistName ?? '',
-        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.textMuted, fontSize: 12),
       ),
       trailing: Text(
         track.durationFormatted,
-        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+        style: TextStyle(color: context.textMuted, fontSize: 12),
       ),
       onTap: () {
         context.read<AudioProvider>().playTrackFromQueue(allTracks, index);

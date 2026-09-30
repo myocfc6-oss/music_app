@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/track_model.dart';
 import '../data/models/album_model.dart';
@@ -8,6 +10,9 @@ import '../data/models/playlist_model.dart';
 import '../data/models/user_model.dart';
 
 class TrackProvider extends ChangeNotifier {
+  static const String _cachedTrendingKey = 'sonus_cached_trending_tracks';
+  static const String _cachedAlbumsKey = 'sonus_cached_albums';
+
   final SupabaseClient _supabase = Supabase.instance.client;
 
   List<TrackModel> _tracks = [];
@@ -22,6 +27,52 @@ class TrackProvider extends ChangeNotifier {
   bool _isLoadingAlbums = false;
   bool _isLoadingPlaylists = false;
   bool _isLoadingLiked = false;
+
+  TrackProvider() {
+    _loadCachedContent();
+  }
+
+  Future<void> _loadCachedContent() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tracksRaw = prefs.getStringList(_cachedTrendingKey);
+      if (tracksRaw != null && tracksRaw.isNotEmpty && _tracks.isEmpty) {
+        _tracks = tracksRaw
+            .map((s) => TrackModel.fromMap(jsonDecode(s) as Map<String, dynamic>))
+            .toList();
+      }
+
+      final albumsRaw = prefs.getStringList(_cachedAlbumsKey);
+      if (albumsRaw != null && albumsRaw.isNotEmpty && _albums.isEmpty) {
+        _albums = albumsRaw
+            .map((s) => AlbumModel.fromMap(jsonDecode(s) as Map<String, dynamic>))
+            .toList();
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading cached tracks/albums: $e');
+    }
+  }
+
+  Future<void> _saveCachedTrending(List<TrackModel> list) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stringList = list.map((t) => jsonEncode(t.toMap())).toList();
+      await prefs.setStringList(_cachedTrendingKey, stringList);
+    } catch (e) {
+      debugPrint('Error saving cached trending tracks: $e');
+    }
+  }
+
+  Future<void> _saveCachedAlbums(List<AlbumModel> list) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stringList = list.map((a) => jsonEncode(a.toMap())).toList();
+      await prefs.setStringList(_cachedAlbumsKey, stringList);
+    } catch (e) {
+      debugPrint('Error saving cached albums: $e');
+    }
+  }
 
   // Getters
   List<TrackModel> get tracks => _tracks;
@@ -74,7 +125,7 @@ class TrackProvider extends ChangeNotifier {
 
       _tracks = data.map<TrackModel>((map) => _parseTrack(map)).toList();
     } catch (e) {
-      debugPrint('Failed to fetch tracks: $e');
+      debugPrint('Failed to fetch tracks (likely offline): $e');
     } finally {
       _isLoadingTracks = false;
       notifyListeners();
@@ -94,8 +145,9 @@ class TrackProvider extends ChangeNotifier {
           .limit(limit);
 
       _tracks = data.map<TrackModel>((map) => _parseTrack(map)).toList();
+      await _saveCachedTrending(_tracks);
     } catch (e) {
-      debugPrint('Failed to fetch trending tracks: $e');
+      debugPrint('Failed to fetch trending tracks (likely offline): $e');
     } finally {
       _isLoadingTracks = false;
       notifyListeners();
@@ -121,8 +173,9 @@ class TrackProvider extends ChangeNotifier {
         }
         return AlbumModel.fromMap(map, artistName: artistName);
       }).toList();
+      await _saveCachedAlbums(_albums);
     } catch (e) {
-      debugPrint('Failed to fetch albums: $e');
+      debugPrint('Failed to fetch albums (likely offline): $e');
     } finally {
       _isLoadingAlbums = false;
       notifyListeners();

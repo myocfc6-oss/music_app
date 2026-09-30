@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../data/models/track_model.dart';
 import '../../../providers/audio_provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/download_provider.dart';
 import '../../../providers/track_provider.dart';
 import '../../global_widgets/track_art_widget.dart';
 import '../../screens/dashboard/artist_detail_screen.dart';
@@ -204,6 +205,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                         ),
                         onPressed: () => audio.toggleRepeat(),
                       ),
+                      _buildDownloadButton(track),
                       IconButton(
                         icon: const Icon(Icons.playlist_add_rounded, size: 22),
                         onPressed: () => _showAddToPlaylist(context, track),
@@ -363,14 +365,88 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
+  Widget _buildDownloadButton(TrackModel track) {
+    return Consumer<DownloadProvider>(
+      builder: (context, downloadProvider, _) {
+        final isDownloaded = downloadProvider.isDownloaded(track.trackId);
+        final isDownloading = downloadProvider.isDownloading(track.trackId);
+        final progress = downloadProvider.getProgress(track.trackId);
+
+        if (isDownloading) {
+          return SizedBox(
+            width: 40,
+            height: 40,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: progress > 0 ? progress : null,
+                  strokeWidth: 2.5,
+                  color: context.primaryNeon,
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.close_rounded, size: 16),
+                  color: context.textMuted,
+                  onPressed: () => downloadProvider.cancelDownload(track.trackId),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return IconButton(
+          icon: Icon(
+            isDownloaded ? Icons.download_done_rounded : Icons.download_rounded,
+            size: 22,
+            color: isDownloaded ? context.primaryNeon : context.textMuted,
+          ),
+          tooltip: isDownloaded ? 'Downloaded' : 'Download for offline',
+          onPressed: () async {
+            if (isDownloaded) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${track.title} is already downloaded for offline playback.'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Downloading ${track.title}...'),
+                  duration: const Duration(seconds: 1),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              final success = await downloadProvider.downloadTrack(track);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success
+                          ? 'Downloaded "${track.title}" for offline playback!'
+                          : 'Download failed. Check your internet connection.',
+                    ),
+                    backgroundColor: success ? context.primaryNeon : Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            }
+          },
+        );
+      },
+    );
+  }
+
   void _showTrackOptions(BuildContext context, TrackModel track) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceCard,
+      backgroundColor: context.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => SafeArea(
+      builder: (bottomSheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -379,31 +455,77 @@ class _PlayerScreenState extends State<PlayerScreen>
               height: 4,
               margin: const EdgeInsets.only(top: 12),
               decoration: BoxDecoration(
-                color: AppColors.borderDark,
+                color: context.textMuted.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.queue_music_rounded, color: AppColors.textMuted),
-              title: const Text('Add to Queue', style: TextStyle(color: AppColors.textPrimary)),
+              leading: Icon(Icons.queue_music_rounded, color: context.textMuted),
+              title: Text('Add to Queue', style: TextStyle(color: context.textPrimary)),
               onTap: () {
                 context.read<AudioProvider>().addToQueue(track);
-                Navigator.pop(context);
+                Navigator.pop(bottomSheetContext);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.playlist_add_rounded, color: AppColors.textMuted),
-              title: const Text('Add to Playlist', style: TextStyle(color: AppColors.textPrimary)),
+              leading: Icon(Icons.playlist_add_rounded, color: context.textMuted),
+              title: Text('Add to Playlist', style: TextStyle(color: context.textPrimary)),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(bottomSheetContext);
                 _showAddToPlaylist(context, track);
               },
             ),
+            Consumer<DownloadProvider>(
+              builder: (ctx, downloadProvider, _) {
+                final isDownloaded = downloadProvider.isDownloaded(track.trackId);
+                return ListTile(
+                  leading: Icon(
+                    isDownloaded ? Icons.delete_outline_rounded : Icons.download_rounded,
+                    color: isDownloaded ? Colors.redAccent : context.textMuted,
+                  ),
+                  title: Text(
+                    isDownloaded ? 'Remove from Downloads' : 'Download for Offline',
+                    style: TextStyle(
+                      color: isDownloaded ? Colors.redAccent : context.textPrimary,
+                    ),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(bottomSheetContext);
+                    if (isDownloaded) {
+                      await downloadProvider.deleteDownload(track.trackId);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Removed "${track.title}" from downloads'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } else {
+                      final success = await downloadProvider.downloadTrack(track);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? 'Downloaded "${track.title}" for offline playback!'
+                                  : 'Download failed. Check your internet connection.',
+                            ),
+                            backgroundColor: success ? context.primaryNeon : Colors.redAccent,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                );
+              },
+            ),
             ListTile(
-              leading: const Icon(Icons.person_rounded, color: AppColors.textMuted),
-              title: const Text('Go to Artist', style: TextStyle(color: AppColors.textPrimary)),
+              leading: Icon(Icons.person_rounded, color: context.textMuted),
+              title: Text('Go to Artist', style: TextStyle(color: context.textPrimary)),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(bottomSheetContext);
                 final trackProvider = context.read<TrackProvider>();
                 final artist = trackProvider.artists.firstWhere(
                   (a) => a.name == track.artistName,

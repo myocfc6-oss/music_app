@@ -29,9 +29,9 @@ class MiniAudioPlayer extends StatelessWidget {
             height: 64,
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.surfaceCard,
+              color: context.surfaceCard,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderDark),
+              border: Border.all(color: context.borderDark),
             ),
             child: Column(
               children: [
@@ -55,7 +55,7 @@ class MiniAudioPlayer extends StatelessWidget {
                               Text(
                                 track.title,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppColors.textPrimary,
+                                  color: context.textPrimary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -79,7 +79,7 @@ class MiniAudioPlayer extends StatelessWidget {
                             audio.isPlaying
                                 ? Icons.pause_rounded
                                 : Icons.play_arrow_rounded,
-                            color: AppColors.textPrimary,
+                            color: context.textPrimary,
                             size: 28,
                           ),
                           onPressed: () => audio.togglePlayPause(),
@@ -93,8 +93,8 @@ class MiniAudioPlayer extends StatelessWidget {
                       ? (audio.currentPosition / audio.duration).clamp(0.0, 1.0)
                       : 0,
                   minHeight: 2,
-                  backgroundColor: AppColors.surfaceElevated,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryNeon),
+                  backgroundColor: context.surfaceElevated,
+                  valueColor: AlwaysStoppedAnimation<Color>(context.primaryNeon),
                 ),
               ],
             ),

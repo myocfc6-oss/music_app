@@ -57,12 +57,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    backgroundColor: AppColors.surfaceCard,
-                    title: const Text('Delete Playlist', style: TextStyle(color: AppColors.textPrimary)),
+                    backgroundColor: context.surfaceCard,
+                    title: Text('Delete Playlist', style: TextStyle(color: context.textPrimary)),
                     content: Text('Delete "${widget.playlist.title}"?',
-                        style: const TextStyle(color: AppColors.textMuted)),
+                        style: TextStyle(color: context.textMuted)),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: TextStyle(color: context.textMuted))),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         child: const Text('Delete', style: TextStyle(color: AppColors.error)),
@@ -84,7 +84,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryNeon))
+          ? Center(child: CircularProgressIndicator(color: context.primaryNeon))
           : _tracks.isEmpty
               ? Center(
                   child: Column(
@@ -93,17 +93,17 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       Icon(
                         Icons.music_off_rounded,
                         size: 64,
-                        color: AppColors.textMuted.withValues(alpha: 0.3),
+                        color: context.textMuted.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'This playlist is empty',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                        style: TextStyle(color: context.textMuted, fontSize: 16),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
+                      Text(
                         'Add songs from the home screen',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                        style: TextStyle(color: context.textMuted, fontSize: 13),
                       ),
                     ],
                   ),
@@ -123,16 +123,16 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       ),
                       title: Text(
                         track.title,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: context.textPrimary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
                         '${track.artistName ?? ''} · ${track.durationFormatted}',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        style: TextStyle(color: context.textMuted, fontSize: 12),
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.close_rounded, color: AppColors.textMuted, size: 20),
+                        icon: Icon(Icons.close_rounded, color: context.textMuted, size: 20),
                         onPressed: () async {
                           await context.read<TrackProvider>().removeTrackFromPlaylist(
                             widget.playlist.playlistId,

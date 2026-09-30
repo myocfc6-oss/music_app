@@ -51,7 +51,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
     if (album == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Album')),
-        body: const Center(child: Text('No album selected', style: TextStyle(color: AppColors.textMuted))),
+        body: Center(child: Text('No album selected', style: TextStyle(color: context.textMuted))),
       );
     }
 
@@ -72,8 +72,8 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      AppColors.primaryNeon.withValues(alpha: 0.3),
-                      AppColors.surfaceDark,
+                      context.primaryNeon.withValues(alpha: 0.3),
+                      context.surfaceDark,
                     ],
                   ),
                 ),
@@ -88,7 +88,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                         borderRadius: 12,
                         placeholderIcon: Icons.album_rounded,
                         iconSize: 72,
-                        glowColor: AppColors.primaryNeon.withValues(alpha: 0.2),
+                        glowColor: context.primaryNeon.withValues(alpha: 0.2),
                         glowBlur: 30,
                         glowSpread: 2,
                       ),
@@ -114,14 +114,14 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                   Text(
                     album.artistName ?? '',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.textMuted,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${album.releaseDate?.year ?? "Unknown"} · ${_tracks.length} tracks',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.textMuted,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -132,10 +132,10 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                           onPressed: _tracks.isNotEmpty
                               ? () => context.read<AudioProvider>().playTrackFromQueue(_tracks, 0)
                               : null,
-                          icon: const Icon(Icons.play_arrow_rounded, color: Colors.black),
-                          label: const Text('Play', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                          icon: Icon(Icons.play_arrow_rounded, color: context.isDarkMode ? Colors.black : Colors.white),
+                          label: Text('Play', style: TextStyle(color: context.isDarkMode ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryNeon,
+                            backgroundColor: context.primaryNeon,
                             minimumSize: const Size(0, 48),
                           ),
                         ),
@@ -144,7 +144,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                       IconButton(
                         onPressed: () {},
                         icon: const Icon(Icons.favorite_border_rounded),
-                        color: AppColors.textMuted,
+                        color: context.textMuted,
                       ),
                       IconButton(
                         onPressed: _tracks.isNotEmpty
@@ -154,7 +154,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                               }
                             : null,
                         icon: const Icon(Icons.shuffle_rounded),
-                        color: AppColors.textMuted,
+                        color: context.textMuted,
                       ),
                     ],
                   ),
@@ -164,20 +164,20 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
             ),
           ),
           if (_isLoading)
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Center(
                 child: Padding(
-                  padding: EdgeInsets.all(48),
-                  child: CircularProgressIndicator(color: AppColors.primaryNeon),
+                  padding: const EdgeInsets.all(48),
+                  child: CircularProgressIndicator(color: context.primaryNeon),
                 ),
               ),
             )
           else if (_tracks.isEmpty)
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.all(48),
+                padding: const EdgeInsets.all(48),
                 child: Center(
-                  child: Text('No tracks in this album', style: TextStyle(color: AppColors.textMuted)),
+                  child: Text('No tracks in this album', style: TextStyle(color: context.textMuted)),
                 ),
               ),
             )
@@ -190,18 +190,18 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
                     leading: Text(
                       '${index + 1}',
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                      style: TextStyle(color: context.textMuted, fontSize: 14),
                     ),
                     title: Text(
                       track.title,
-                      style: const TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: context.textPrimary),
                     ),
                     subtitle: Text(
                       track.durationFormatted,
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                      style: TextStyle(color: context.textMuted, fontSize: 12),
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.more_vert, color: AppColors.textMuted, size: 20),
+                      icon: Icon(Icons.more_vert, color: context.textMuted, size: 20),
                       onPressed: () {},
                     ),
                     onTap: () {

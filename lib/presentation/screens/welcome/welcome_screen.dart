@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../providers/auth_provider.dart';
 import '../auth/login_screen.dart';
 import '../auth/register_screen.dart';
 
@@ -22,7 +24,7 @@ class WelcomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryNeon.withValues(alpha: 0.3),
+                      color: context.primaryNeon.withValues(alpha: 0.3),
                       blurRadius: 20,
                       spreadRadius: 2,
                     ),
@@ -73,8 +75,8 @@ class WelcomeScreen extends StatelessWidget {
                     );
                   },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textPrimary,
-                    side: const BorderSide(color: AppColors.borderDark),
+                    foregroundColor: context.textPrimary,
+                    side: BorderSide(color: context.borderDark),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -85,6 +87,21 @@ class WelcomeScreen extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () {
+                  context.read<AuthProvider>().continueAsGuest();
+                },
+                icon: Icon(Icons.offline_pin_rounded, size: 20, color: context.primaryNeon),
+                label: Text(
+                  'Continue Offline / Guest Mode',
+                  style: TextStyle(
+                    color: context.primaryNeon,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
